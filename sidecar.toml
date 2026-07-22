@@ -1,0 +1,12 @@
+[project]
+name = "stim"
+namespace = "dev"
+root = "."
+
+[[sidecars]]
+name = "service"
+command = "cargo"
+args = ["run", "--locked", "-p", "stim", "--", "service", "serve"]
+cwd = "."
+mode = "dev"
+health_url = "http://127.0.0.1:43308/health"

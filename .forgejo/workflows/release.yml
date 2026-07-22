@@ -1,0 +1,62 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to release from
+        required: true
+        default: main
+        type: string
+      version:
+        description: Release version, for example v0.1.0-beta.1
+        required: true
+        type: string
+      channel:
+        description: Release channel
+        required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - stable
+
+jobs:
+  release:
+    runs-on: docker
+    container:
+      image: mirror.perish.lan/ci/deno
+    env:
+      RELEASE_CHANNEL: ${{ inputs.channel }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      STIM_RELEASES_PUBLIC_URL: ${{ vars.STIM_RELEASES_PUBLIC_URL }}
+      STIM_RELEASES_S3_AK: ${{ secrets.STIM_RELEASES_S3_AK }}
+      STIM_RELEASES_S3_BUCKET: ${{ secrets.STIM_RELEASES_S3_BUCKET }}
+      STIM_RELEASES_S3_SK: ${{ secrets.STIM_RELEASES_S3_SK }}
+      STIM_RELEASES_S3_URL: ${{ secrets.STIM_RELEASES_S3_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Install negentropy
+        run: |
+          set -eu
+          curl -fsSL https://releases.negentropy.perish.uk/manage.sh -o "$RUNNER_TEMP/manage-negentropy.sh"
+          sh "$RUNNER_TEMP/manage-negentropy.sh" install --channel stable --bin-dir "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Guard
+        run: |
+          set -eu
+          deno run --allow-read "--allow-write=." --allow-env --allow-net "--allow-run=git,cargo,negentropy,deno,tea,sh,runseal" --config .runseal/deno.json --lock .runseal/deno.lock --frozen=true .runseal/wrappers/guard.ts --fresh
+
+      - name: Package
+        run: |
+          set -eu
+          .forgejo/scripts/release/package.sh "$RELEASE_VERSION"
+          echo "RELEASE_ROOT=$GITHUB_WORKSPACE/dist/$RELEASE_VERSION" >> "$GITHUB_ENV"
+
+      - name: Publish to R2
+        run: .forgejo/scripts/release/publish.sh

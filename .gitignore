@@ -1,0 +1,8 @@
+/target/
+/dist/
+/.local/
+/.task/
+/stim.toml
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

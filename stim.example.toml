@@ -1,0 +1,15 @@
+[listen]
+address = "127.0.0.1:43308"
+
+[store]
+path = ".local/stim.sqlite"
+
+[santi]
+base_url = "https://santi.example.com"
+credential_env = "STIM_SANTI_TOKEN"
+soul_id = "soul_default"
+
+[reply]
+address = "0.0.0.0:43309"
+# printf '%s' "$STIM_REPLY_TOKEN" | sha256sum
+credential_sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
