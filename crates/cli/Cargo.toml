@@ -6,7 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-plumb-lib = { workspace = true }
+plumb = { workspace = true }
 anyhow.workspace = true
 axum.workspace = true
 clap.workspace = true
@@ -22,6 +22,6 @@ toml.workspace = true
 uuid.workspace = true
 
 [dev-dependencies]
-plumb-lib = { workspace = true }
+plumb = { workspace = true }
 tempfile = "3.26.0"
 tower = { version = "0.5.2", features = ["util"] }

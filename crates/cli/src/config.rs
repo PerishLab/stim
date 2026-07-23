@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use plumb_lib::config::{Kind, Listen, Store};
+use plumb::config::{Kind, Listen, Store};
 use serde::Deserialize;
 
 #[derive(Clone, Deserialize)]

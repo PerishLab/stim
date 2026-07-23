@@ -5,7 +5,7 @@ use axum::extract::State;
 use axum::http::{Request, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use plumb_lib::config::{Kind, Listen, Store as StoreConfig};
+use plumb::config::{Kind, Listen, Store as StoreConfig};
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
 use stim::config::{Config, Reply, Santi};
