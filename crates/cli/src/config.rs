@@ -1,25 +1,45 @@
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use plumb::config::{Kind, Listen, Store};
-use serde::Deserialize;
+use plumb::config::{Cascade, Kind, Listen, Store};
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Cascade)]
 pub struct Config {
+    #[cascade(section)]
     pub listen: Listen,
+    #[cascade(section)]
     pub store: Store,
+    #[cascade(section)]
     pub santi: Santi,
+    #[cascade(section)]
     pub reply: Reply,
 }
 
-#[derive(Clone, Deserialize)]
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            listen: Listen {
+                host: "127.0.0.1".to_string(),
+                port: 43308,
+                prefix: String::new(),
+            },
+            store: Store::default(),
+            santi: Santi::default(),
+            reply: Reply::default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Cascade)]
+#[cascade(section)]
 pub struct Santi {
     pub base_url: String,
     pub credential_env: String,
     pub soul_id: String,
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Clone, Debug, Default, Cascade)]
+#[cascade(section)]
 pub struct Reply {
     pub address: String,
     pub credential_sha256: String,
@@ -28,9 +48,8 @@ pub struct Reply {
 impl Config {
     pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        let text = std::fs::read_to_string(path)
-            .with_context(|| format!("read config {}", path.display()))?;
-        let mut config: Self = toml::from_str(&text).context("parse stim config")?;
+        let mut config = Self::resolve(Some(path))
+            .with_context(|| format!("resolve config {}", path.display()))?;
         if config.store.kind != Kind::File {
             anyhow::bail!("store.kind must be file");
         }

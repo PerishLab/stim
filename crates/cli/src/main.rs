@@ -30,9 +30,7 @@ async fn client(
     reply_token: Option<String>,
     command: Command,
 ) -> Result<()> {
-    let base = base_url
-        .or_else(|| std::env::var("STIM_BASE_URL").ok())
-        .unwrap_or_else(|| "http://127.0.0.1:43308".to_string());
+    let base = base_url.unwrap_or_else(|| "http://127.0.0.1:43308".to_string());
     let client = reqwest::Client::new();
     match command {
         Command::Send {
@@ -78,7 +76,6 @@ async fn client(
             let strand_id = required_env("SANTI_STRAND_ID")?;
             let turn_id = required_env("SANTI_TURN_ID")?;
             let token = reply_token
-                .or_else(|| std::env::var("STIM_REPLY_TOKEN").ok())
                 .filter(|value| !value.trim().is_empty())
                 .ok_or_else(|| anyhow::anyhow!("missing --reply-token / STIM_REPLY_TOKEN"))?;
             http::print(
