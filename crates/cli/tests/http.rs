@@ -5,9 +5,10 @@ use axum::extract::State;
 use axum::http::{Request, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use plumb_lib::config::{Kind, Listen, Store as StoreConfig};
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
-use stim::config::{Config, Listen, Reply, Santi, Store as StoreConfig};
+use stim::config::{Config, Reply, Santi};
 use stim_core::{IngestRequest, Store};
 use tower::ServiceExt as _;
 
@@ -157,9 +158,14 @@ async fn stream() -> &'static str {
 fn config(base: String, path: std::path::PathBuf) -> Config {
     Config {
         listen: Listen {
-            address: "127.0.0.1:0".to_string(),
+            host: "127.0.0.1".to_string(),
+            port: 0,
+            prefix: String::new(),
         },
-        store: StoreConfig { path },
+        store: StoreConfig {
+            kind: Kind::File,
+            path: path.to_string_lossy().into_owned(),
+        },
         santi: Santi {
             base_url: format!("http://{base}"),
             credential_env: "STIM_SANTI_TOKEN".to_string(),

@@ -1,6 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use anyhow::{Context, Result};
+use plumb_lib::config::{Kind, Listen, Store};
 use serde::Deserialize;
 
 #[derive(Clone, Deserialize)]
@@ -9,16 +10,6 @@ pub struct Config {
     pub store: Store,
     pub santi: Santi,
     pub reply: Reply,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct Listen {
-    pub address: String,
-}
-
-#[derive(Clone, Deserialize)]
-pub struct Store {
-    pub path: PathBuf,
 }
 
 #[derive(Clone, Deserialize)]
@@ -40,8 +31,8 @@ impl Config {
         let text = std::fs::read_to_string(path)
             .with_context(|| format!("read config {}", path.display()))?;
         let mut config: Self = toml::from_str(&text).context("parse stim config")?;
-        if config.listen.address.trim().is_empty() {
-            anyhow::bail!("listen.address must not be empty");
+        if config.store.kind != Kind::File {
+            anyhow::bail!("store.kind must be file");
         }
         if config.reply.address.trim().is_empty() {
             anyhow::bail!("reply.address must not be empty");
@@ -57,10 +48,8 @@ impl Config {
             anyhow::bail!("reply.credential_sha256 must be 64 hexadecimal characters");
         }
         config.reply.credential_sha256 = digest;
-        if config.store.path.is_relative() {
-            let parent = path.parent().unwrap_or_else(|| Path::new("."));
-            config.store.path = parent.join(&config.store.path);
-        }
+        let parent = path.parent().unwrap_or_else(|| Path::new("."));
+        config.store.path = config.store.rebased(parent).to_string_lossy().into_owned();
         Ok(config)
     }
 

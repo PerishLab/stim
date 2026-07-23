@@ -31,9 +31,9 @@ pub async fn serve(config: Config) -> Result<()> {
     let main = main_router(config.clone(), store.clone(), santi.clone());
     let replies = reply_router(config.clone(), store.clone(), santi.clone());
     workers(store, santi);
-    let main_listener = tokio::net::TcpListener::bind(&config.listen.address)
+    let main_listener = tokio::net::TcpListener::bind(config.listen.address())
         .await
-        .with_context(|| format!("bind {}", config.listen.address))?;
+        .with_context(|| format!("bind {}", config.listen.address()))?;
     let reply_listener = tokio::net::TcpListener::bind(&config.reply.address)
         .await
         .with_context(|| format!("bind {}", config.reply.address))?;
