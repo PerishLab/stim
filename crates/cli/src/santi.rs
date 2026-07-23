@@ -26,10 +26,7 @@ impl Client {
         })
     }
 
-    pub async fn ingest(
-        &self,
-        request: &stim_core::IngestRequest,
-    ) -> Result<stim_core::IngestReceipt> {
+    pub async fn ingest(&self, request: &stim_core::Ingest) -> Result<stim_core::Receipt> {
         let response = self
             .http
             .post(format!("{}/api/v1/ingest", self.base))
@@ -41,7 +38,7 @@ impl Client {
         decode(response, "santi ingest").await
     }
 
-    pub async fn backfill(&self, since: i64) -> Result<stim_core::TurnEventBatch> {
+    pub async fn backfill(&self, since: i64) -> Result<stim_core::Events> {
         let response = self
             .http
             .get(format!("{}/api/v1/turn-events", self.base))
@@ -84,10 +81,10 @@ impl Client {
         loop {
             let before = store.cursor().map_err(anyhow::Error::msg)?;
             let batch = self.backfill(before).await?;
-            let event_count = batch.events.len();
+            let count = batch.events.len();
             let synced = store.sync(&batch).map_err(anyhow::Error::msg)?;
             total += synced.inserted;
-            if batch.cursor == before || event_count < 256 {
+            if batch.cursor == before || count < 256 {
                 return Ok(stim_core::Synced {
                     cursor: synced.cursor,
                     inserted: total,
@@ -101,7 +98,7 @@ impl Client {
         for staged in &pending {
             let receipt = self.ingest(&staged.request).await?;
             store
-                .accept(&staged.request.request_id, &receipt)
+                .accept(&staged.request.request, &receipt)
                 .map_err(anyhow::Error::msg)?;
         }
         Ok(pending.len())

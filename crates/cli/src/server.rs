@@ -4,7 +4,6 @@ use std::time::Duration;
 use anyhow::{Context, Result};
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -26,30 +25,30 @@ struct Poll {
 
 pub async fn serve(config: Config) -> Result<()> {
     let store = stim_core::Store::open(&config.store.path).map_err(anyhow::Error::msg)?;
-    let token = config.santi_token()?;
-    let santi = crate::santi::Client::new(&config.santi.base_url, &token)?;
-    let main = main_router(config.clone(), store.clone(), santi.clone());
-    let replies = reply_router(config.clone(), store.clone(), santi.clone());
+    let token = config.token()?;
+    let santi = crate::santi::Client::new(&config.santi.url, &token)?;
+    let main = front(config.clone(), store.clone(), santi.clone());
+    let replies = back(config.clone(), store.clone(), santi.clone());
     workers(store, santi);
-    let main_listener = tokio::net::TcpListener::bind(config.listen.address())
+    let door = tokio::net::TcpListener::bind(config.listen.address())
         .await
         .with_context(|| format!("bind {}", config.listen.address()))?;
-    let reply_listener = tokio::net::TcpListener::bind(&config.reply.address)
+    let gate = tokio::net::TcpListener::bind(&config.reply.address)
         .await
         .with_context(|| format!("bind {}", config.reply.address))?;
     tokio::select! {
-        result = axum::serve(main_listener, main) => result.context("serve stim"),
-        result = axum::serve(reply_listener, replies) => result.context("serve stim replies"),
+        result = axum::serve(door, main) => result.context("serve stim"),
+        result = axum::serve(gate, replies) => result.context("serve stim replies"),
         _ = shutdown() => Ok(()),
     }
 }
 
 fn workers(store: stim_core::Store, santi: crate::santi::Client) {
-    let event_store = store.clone();
-    let event_client = santi.clone();
+    let held = store.clone();
+    let client = santi.clone();
     tokio::spawn(async move {
         loop {
-            if let Err(error) = event_client.watch(event_store.clone()).await {
+            if let Err(error) = client.watch(held.clone()).await {
                 eprintln!("stim: santi consumer reconnecting: {error}");
                 tokio::time::sleep(Duration::from_secs(2)).await;
             }
@@ -65,31 +64,26 @@ fn workers(store: stim_core::Store, santi: crate::santi::Client) {
     });
 }
 
-pub fn main_router(config: Config, store: stim_core::Store, santi: crate::santi::Client) -> Router {
-    let app = state(config, store, santi);
+pub fn front(config: Config, store: stim_core::Store, santi: crate::santi::Client) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/api/v1/messages", post(send))
         .route("/api/v1/inbox/{participant}", get(poll))
-        .with_state(app)
+        .with_state(Arc::new(App {
+            config,
+            store,
+            santi,
+        }))
 }
 
-pub fn reply_router(
-    config: Config,
-    store: stim_core::Store,
-    santi: crate::santi::Client,
-) -> Router {
+pub fn back(config: Config, store: stim_core::Store, santi: crate::santi::Client) -> Router {
     Router::new()
         .route("/api/v1/replies", post(reply))
-        .with_state(state(config, store, santi))
-}
-
-fn state(config: Config, store: stim_core::Store, santi: crate::santi::Client) -> Arc<App> {
-    Arc::new(App {
-        config,
-        store,
-        santi,
-    })
+        .with_state(Arc::new(App {
+            config,
+            store,
+            santi,
+        }))
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -98,88 +92,81 @@ async fn health() -> Json<serde_json::Value> {
 
 async fn send(
     State(app): State<Arc<App>>,
-    Json(mut request): Json<stim_core::MessageRequest>,
-) -> Result<Json<stim_core::MessageResponse>, ApiError> {
+    Json(mut request): Json<stim_core::Post>,
+) -> Result<Json<stim_core::Posted>, Fault> {
     let soul = request
-        .soul_id
+        .soul
         .take()
-        .unwrap_or_else(|| app.config.santi.soul_id.clone());
+        .unwrap_or_else(|| app.config.santi.soul.clone());
     let staged = app
         .store
         .stage(
-            &request.participant_id,
+            &request.participant,
             &soul,
-            &request.request_id,
+            &request.request,
             &request.content,
         )
-        .map_err(ApiError::conflict)?;
+        .map_err(conflict)?;
     let receipt = app.santi.ingest(&staged.request).await.map_err(|error| {
-        ApiError::upstream(anyhow::anyhow!(
+        upstream(anyhow::anyhow!(
             "{error}; request {} remains staged for retry",
-            request.request_id
+            request.request
         ))
     })?;
     let message = app
         .store
-        .accept(&request.request_id, &receipt)
-        .map_err(ApiError::conflict)?;
-    Ok(Json(stim_core::MessageResponse { message, receipt }))
+        .accept(&request.request, &receipt)
+        .map_err(conflict)?;
+    Ok(Json(stim_core::Posted { message, receipt }))
 }
 
 async fn poll(
     State(app): State<Arc<App>>,
     Path(participant): Path<String>,
     Query(query): Query<Poll>,
-) -> Result<Json<Vec<stim_core::Message>>, ApiError> {
+) -> Result<Json<Vec<stim_core::Message>>, Fault> {
     app.store
         .poll(&participant, query.since.unwrap_or(0))
         .map(Json)
-        .map_err(ApiError::internal)
+        .map_err(internal)
 }
 
 async fn reply(
     State(app): State<Arc<App>>,
     headers: HeaderMap,
-    Json(request): Json<stim_core::ReplyRequest>,
-) -> Result<Json<stim_core::ReplyResponse>, ApiError> {
+    Json(request): Json<stim_core::Reply>,
+) -> Result<Json<stim_core::Replied>, Fault> {
     let digest = headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
         .map(|token| hex::encode(Sha256::digest(token.as_bytes())))
         .unwrap_or_default();
-    if !same(&digest, &app.config.reply.credential_sha256) {
-        return Err(ApiError(
+    if !same(&digest, &app.config.reply.digest) {
+        return Err(fault(
             StatusCode::UNAUTHORIZED,
             "invalid credential".to_string(),
         ));
     }
-    app.store
-        .reply(&request)
-        .map(Json)
-        .map_err(ApiError::conflict)
+    app.store.reply(&request).map(Json).map_err(conflict)
 }
 
-struct ApiError(StatusCode, String);
+type Fault = (StatusCode, Json<serde_json::Value>);
 
-impl ApiError {
-    fn conflict(error: String) -> Self {
-        Self(StatusCode::CONFLICT, error)
-    }
-
-    fn internal(error: String) -> Self {
-        Self(StatusCode::INTERNAL_SERVER_ERROR, error)
-    }
-
-    fn upstream(error: anyhow::Error) -> Self {
-        Self(StatusCode::BAD_GATEWAY, error.to_string())
-    }
+fn fault(status: StatusCode, error: String) -> Fault {
+    (status, Json(serde_json::json!({ "error": error })))
 }
 
-impl IntoResponse for ApiError {
-    fn into_response(self) -> axum::response::Response {
-        (self.0, Json(serde_json::json!({ "error": self.1 }))).into_response()
-    }
+fn conflict(error: String) -> Fault {
+    fault(StatusCode::CONFLICT, error)
+}
+
+fn internal(error: String) -> Fault {
+    fault(StatusCode::INTERNAL_SERVER_ERROR, error)
+}
+
+fn upstream(error: anyhow::Error) -> Fault {
+    fault(StatusCode::BAD_GATEWAY, error.to_string())
 }
 
 fn same(left: &str, right: &str) -> bool {

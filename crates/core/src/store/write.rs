@@ -1,18 +1,27 @@
 use chrono::Utc;
 use rusqlite::{Transaction, params};
 
-use crate::{Delivery, Message, Staged, TurnEvent, label, participant};
+use crate::{Delivery, Event, Message, Reply, Staged, label, participant};
 
-use super::query::{message_by_turn, participant_for_strand};
+use super::query::Query;
 
-pub(super) fn staged(message: Message, soul_id: &str, request_id: &str) -> Staged {
+pub(super) struct Penned<'a> {
+    pub participant: &'a str,
+    pub strand: &'a str,
+    pub turn: &'a str,
+    pub content: &'a str,
+    pub delivery: Delivery,
+    pub created: &'a str,
+}
+
+pub(super) fn staged(message: Message, soul: &str, request: &str) -> Staged {
     Staged {
-        request: crate::IngestRequest {
-            soul_id: soul_id.to_string(),
-            label: label(&message.participant_id),
+        request: crate::Ingest {
+            soul: soul.to_string(),
+            label: label(&message.participant),
             text: message.content.clone(),
-            request_id: request_id.to_string(),
-            source_ref: Some(format!("stim:{request_id}")),
+            request: request.to_string(),
+            source: Some(format!("stim:{request}")),
         },
         message,
     }
@@ -25,10 +34,10 @@ pub(super) fn validate(
     content: &str,
 ) -> Result<(), String> {
     if participant.trim().is_empty() || soul.trim().is_empty() || request.trim().is_empty() {
-        return Err("participant_id, soul_id, and request_id must not be empty".to_string());
+        return Err("participant, soul, and request must not be empty".to_string());
     }
     if participant.len() > 128 || soul.len() > 256 || request.len() > 256 {
-        return Err("participant_id, soul_id, or request_id is too long".to_string());
+        return Err("participant, soul, or request is too long".to_string());
     }
     if content.trim().is_empty() {
         return Err("content must not be empty".to_string());
@@ -36,160 +45,156 @@ pub(super) fn validate(
     Ok(())
 }
 
-pub(super) fn bind(tx: &Transaction<'_>, participant: &str, strand: &str) -> Result<(), String> {
-    let existing = participant_for_strand(tx, strand)?;
-    if existing
-        .as_deref()
-        .is_some_and(|value| value != participant)
-    {
-        return Err(format!("strand {strand} belongs to another participant"));
-    }
-    let current: Option<String> = tx
-        .query_row(
-            "SELECT strand_id FROM conversations WHERE participant_id = ?1",
-            [participant],
-            |row| row.get(0),
-        )
-        .map_err(|error| error.to_string())?;
-    if current.as_deref().is_some_and(|value| value != strand) {
-        return Err(format!(
-            "participant {participant} belongs to another strand"
-        ));
-    }
-    tx.execute(
-        "UPDATE conversations SET strand_id = ?1, updated_at = ?2 WHERE participant_id = ?3",
-        params![strand, now(), participant],
-    )
-    .map_err(|error| error.to_string())?;
-    materialize(tx, participant, strand)?;
-    Ok(())
+pub(super) trait Write {
+    fn bind(&self, participant: &str, strand: &str) -> Result<(), String>;
+    fn apply(&self, event: &Event) -> Result<bool, String>;
+    fn defer(&self, request: &Reply) -> Result<(), String>;
+    fn settle(&self, participant: &str, strand: &str) -> Result<(), String>;
+    fn penned(&self, note: &Penned<'_>) -> Result<Message, String>;
 }
 
-pub(super) fn apply(tx: &Transaction<'_>, event: &TurnEvent) -> Result<bool, String> {
-    let participant_id = participant(&event.external_label)
-        .ok_or_else(|| format!("event {} is outside the stim zone", event.id))?;
-    let now = now();
-    tx.execute(
-        r#"
-        INSERT INTO conversations (participant_id, strand_id, created_at, updated_at)
-        VALUES (?1, ?2, ?3, ?3)
-        ON CONFLICT(participant_id) DO NOTHING
-        "#,
-        params![participant_id, event.strand_id, now],
-    )
-    .map_err(|error| error.to_string())?;
-    bind(tx, participant_id, &event.strand_id)?;
-    if let Some(existing) = message_by_turn(tx, &event.turn_id)? {
-        if existing.participant_id == participant_id
-            && existing.strand_id.as_deref() == Some(event.strand_id.as_str())
-            && (existing.delivery == Some(Delivery::Explicit)
-                || existing.content == event.final_text)
+impl Write for Transaction<'_> {
+    fn bind(&self, participant: &str, strand: &str) -> Result<(), String> {
+        let existing = self.participant(strand)?;
+        if existing
+            .as_deref()
+            .is_some_and(|value| value != participant)
         {
-            return Ok(false);
+            return Err(format!("strand {strand} belongs to another participant"));
         }
-        return Err(format!(
-            "turn {} conflicts with an existing reply",
-            event.turn_id
-        ));
-    }
-    insert_reply(
-        tx,
-        participant_id,
-        &event.strand_id,
-        &event.turn_id,
-        &event.final_text,
-        Delivery::Automatic,
-        &event.completed_at,
-    )?;
-    Ok(true)
-}
-
-pub(super) fn defer(tx: &Transaction<'_>, request: &crate::ReplyRequest) -> Result<(), String> {
-    tx.execute(
-        r#"
-        INSERT INTO early_replies (turn_id, strand_id, content, created_at)
-        VALUES (?1, ?2, ?3, ?4)
-        "#,
-        params![request.turn_id, request.strand_id, request.content, now()],
-    )
-    .map_err(|error| error.to_string())?;
-    Ok(())
-}
-
-pub(super) fn materialize(
-    tx: &Transaction<'_>,
-    participant: &str,
-    strand: &str,
-) -> Result<(), String> {
-    let mut stmt = tx
-        .prepare(
-            r#"
-            SELECT turn_id, content, created_at
-            FROM early_replies WHERE strand_id = ?1 ORDER BY created_at
-            "#,
+        let current: Option<String> = self
+            .query_row(
+                "SELECT strand_id FROM conversations WHERE participant_id = ?1",
+                [participant],
+                |row| row.get(0),
+            )
+            .map_err(|error| error.to_string())?;
+        if current.as_deref().is_some_and(|value| value != strand) {
+            return Err(format!(
+                "participant {participant} belongs to another strand"
+            ));
+        }
+        self.execute(
+            "UPDATE conversations SET strand_id = ?1, updated_at = ?2 WHERE participant_id = ?3",
+            params![strand, now(), participant],
         )
         .map_err(|error| error.to_string())?;
-    let rows = stmt
-        .query_map([strand], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-            ))
-        })
-        .map_err(|error| error.to_string())?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(|error| error.to_string())?;
-    drop(stmt);
-    for (turn, content, created) in rows {
-        if message_by_turn(tx, &turn)?.is_none() {
-            insert_reply(
-                tx,
-                participant,
-                strand,
-                &turn,
-                &content,
-                Delivery::Explicit,
-                &created,
-            )?;
-        }
-        tx.execute("DELETE FROM early_replies WHERE turn_id = ?1", [&turn])
-            .map_err(|error| error.to_string())?;
+        self.settle(participant, strand)?;
+        Ok(())
     }
-    Ok(())
+
+    fn apply(&self, event: &Event) -> Result<bool, String> {
+        let held = participant(&event.label)
+            .ok_or_else(|| format!("event {} is outside the stim zone", event.id))?;
+        let now = now();
+        self.execute(
+            r#"
+            INSERT INTO conversations (participant_id, strand_id, created_at, updated_at)
+            VALUES (?1, ?2, ?3, ?3)
+            ON CONFLICT(participant_id) DO NOTHING
+            "#,
+            params![held, event.strand, now],
+        )
+        .map_err(|error| error.to_string())?;
+        self.bind(held, &event.strand)?;
+        if let Some(existing) = self.turned(&event.turn)? {
+            if existing.participant == held
+                && existing.strand.as_deref() == Some(event.strand.as_str())
+                && (existing.delivery == Some(Delivery::Explicit) || existing.content == event.text)
+            {
+                return Ok(false);
+            }
+            return Err(format!(
+                "turn {} conflicts with an existing reply",
+                event.turn
+            ));
+        }
+        self.penned(&Penned {
+            participant: held,
+            strand: &event.strand,
+            turn: &event.turn,
+            content: &event.text,
+            delivery: Delivery::Automatic,
+            created: &event.completed,
+        })?;
+        Ok(true)
+    }
+
+    fn defer(&self, request: &Reply) -> Result<(), String> {
+        self.execute(
+            r#"
+            INSERT INTO early_replies (turn_id, strand_id, content, created_at)
+            VALUES (?1, ?2, ?3, ?4)
+            "#,
+            params![request.turn, request.strand, request.content, now()],
+        )
+        .map_err(|error| error.to_string())?;
+        Ok(())
+    }
+
+    fn settle(&self, participant: &str, strand: &str) -> Result<(), String> {
+        let mut stmt = self
+            .prepare(
+                r#"
+                SELECT turn_id, content, created_at
+                FROM early_replies WHERE strand_id = ?1 ORDER BY created_at
+                "#,
+            )
+            .map_err(|error| error.to_string())?;
+        let rows = stmt
+            .query_map([strand], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|error| error.to_string())?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| error.to_string())?;
+        drop(stmt);
+        for (turn, content, created) in rows {
+            if self.turned(&turn)?.is_none() {
+                self.penned(&Penned {
+                    participant,
+                    strand,
+                    turn: &turn,
+                    content: &content,
+                    delivery: Delivery::Explicit,
+                    created: &created,
+                })?;
+            }
+            self.execute("DELETE FROM early_replies WHERE turn_id = ?1", [&turn])
+                .map_err(|error| error.to_string())?;
+        }
+        Ok(())
+    }
+
+    fn penned(&self, note: &Penned<'_>) -> Result<Message, String> {
+        let id = format!("msg_{}", uuid::Uuid::new_v4().simple());
+        self.execute(
+            r#"
+            INSERT INTO messages (
+              id, participant_id, author, strand_id, turn_id, delivery, content, created_at
+            ) VALUES (?1, ?2, 'soul', ?3, ?4, ?5, ?6, ?7)
+            "#,
+            params![
+                id,
+                note.participant,
+                note.strand,
+                note.turn,
+                coded(note.delivery),
+                note.content,
+                note.created
+            ],
+        )
+        .map_err(|error| error.to_string())?;
+        self.turned(note.turn)?
+            .ok_or_else(|| "reply missing after insert".to_string())
+    }
 }
 
-pub(super) fn insert_reply(
-    tx: &Transaction<'_>,
-    participant: &str,
-    strand: &str,
-    turn: &str,
-    content: &str,
-    delivery: Delivery,
-    created: &str,
-) -> Result<Message, String> {
-    let id = format!("msg_{}", uuid::Uuid::new_v4().simple());
-    tx.execute(
-        r#"
-        INSERT INTO messages (
-          id, participant_id, author, strand_id, turn_id, delivery, content, created_at
-        ) VALUES (?1, ?2, 'soul', ?3, ?4, ?5, ?6, ?7)
-        "#,
-        params![
-            id,
-            participant,
-            strand,
-            turn,
-            delivery_db(delivery),
-            content,
-            created
-        ],
-    )
-    .map_err(|error| error.to_string())?;
-    message_by_turn(tx, turn)?.ok_or_else(|| "reply missing after insert".to_string())
-}
-
-fn delivery_db(value: Delivery) -> &'static str {
+fn coded(value: Delivery) -> &'static str {
     match value {
         Delivery::Explicit => "explicit",
         Delivery::Automatic => "automatic",

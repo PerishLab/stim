@@ -33,7 +33,7 @@ Register only the SHA-256 digest of that token with Santi's operator-authenticat
 {
   "id": "stim",
   "label_prefix": "stim:",
-  "credential_sha256": "<64 lowercase hexadecimal characters>"
+  "digest": "<64 lowercase hexadecimal characters>"
 }
 ```
 

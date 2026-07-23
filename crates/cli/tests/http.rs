@@ -9,14 +9,14 @@ use plumb::config::{Kind, Listen, Store as StoreConfig};
 use serde_json::json;
 use sha2::{Digest as _, Sha256};
 use stim::config::{Config, Reply, Santi};
-use stim_core::{IngestRequest, Store};
+use stim_core::{Ingest, Store};
 use tower::ServiceExt as _;
 
 #[derive(Clone, Default)]
-struct Seen(Arc<Mutex<Vec<IngestRequest>>>);
+struct Seen(Arc<Mutex<Vec<Ingest>>>);
 
 #[tokio::test]
-async fn http_roundtrip_and_reply_auth() {
+async fn roundtrip() {
     let seen = Seen::default();
     let upstream = Router::new()
         .route("/api/v1/ingest", post(ingest))
@@ -38,18 +38,18 @@ async fn http_roundtrip_and_reply_auth() {
     let config = config(address.to_string(), temp.path().join("stim.sqlite"));
     let santi = stim::santi::Client::new(&format!("http://{address}"), "santi-secret")
         .expect("santi client");
-    let app = stim::server::main_router(config.clone(), store.clone(), santi.clone());
-    let replies = stim::server::reply_router(config, store.clone(), santi.clone());
+    let app = stim::server::front(config.clone(), store.clone(), santi.clone());
+    let replies = stim::server::back(config, store.clone(), santi.clone());
 
     let response = app
         .clone()
-        .oneshot(json_request(
+        .oneshot(framed(
             "/api/v1/messages",
             json!({
-                "participant_id": "operator",
-                "soul_id": null,
+                "participant": "operator",
+                "soul": null,
                 "content": "hello",
-                "request_id": "request_1"
+                "request": "request_1"
             }),
             None,
         ))
@@ -85,25 +85,25 @@ async fn http_roundtrip_and_reply_auth() {
     assert_eq!(seen.0.lock().unwrap().len(), 2);
 
     let reply = json!({
-        "strand_id": "strand_1",
-        "turn_id": "turn_1",
+        "strand": "strand_1",
+        "turn": "turn_1",
         "content": "early"
     });
     let missing = app
         .clone()
-        .oneshot(json_request("/api/v1/replies", reply.clone(), None))
+        .oneshot(framed("/api/v1/replies", reply.clone(), None))
         .await
         .expect("missing response");
     assert_eq!(missing.status(), StatusCode::NOT_FOUND);
     let denied = replies
         .clone()
-        .oneshot(json_request("/api/v1/replies", reply.clone(), None))
+        .oneshot(framed("/api/v1/replies", reply.clone(), None))
         .await
         .expect("denied response");
     assert_eq!(denied.status(), StatusCode::UNAUTHORIZED);
     let accepted = replies
         .clone()
-        .oneshot(json_request(
+        .oneshot(framed(
             "/api/v1/replies",
             reply.clone(),
             Some("reply-secret"),
@@ -115,7 +115,7 @@ async fn http_roundtrip_and_reply_auth() {
     assert_eq!(accepted["pending"], false);
     assert!(accepted["message"].is_object());
     let repeated = replies
-        .oneshot(json_request("/api/v1/replies", reply, Some("reply-secret")))
+        .oneshot(framed("/api/v1/replies", reply, Some("reply-secret")))
         .await
         .expect("repeat response");
     assert!(body(repeated).await["deduplicated"].as_bool().unwrap());
@@ -128,7 +128,7 @@ async fn http_roundtrip_and_reply_auth() {
 async fn ingest(
     State(seen): State<Seen>,
     headers: axum::http::HeaderMap,
-    Json(request): Json<IngestRequest>,
+    Json(request): Json<Ingest>,
 ) -> (StatusCode, Json<serde_json::Value>) {
     assert_eq!(
         headers
@@ -167,18 +167,18 @@ fn config(base: String, path: std::path::PathBuf) -> Config {
             path: path.to_string_lossy().into_owned(),
         },
         santi: Santi {
-            base_url: format!("http://{base}"),
-            credential_env: "STIM_SANTI_TOKEN".to_string(),
-            soul_id: "soul_default".to_string(),
+            url: format!("http://{base}"),
+            credential: "STIM_SANTI_TOKEN".to_string(),
+            soul: "soul_default".to_string(),
         },
         reply: Reply {
             address: "127.0.0.1:0".to_string(),
-            credential_sha256: hex::encode(Sha256::digest(b"reply-secret")),
+            digest: hex::encode(Sha256::digest(b"reply-secret")),
         },
     }
 }
 
-fn json_request(uri: &str, body: serde_json::Value, token: Option<&str>) -> Request<Body> {
+fn framed(uri: &str, body: serde_json::Value, token: Option<&str>) -> Request<Body> {
     let mut builder = Request::builder()
         .method("POST")
         .uri(uri)

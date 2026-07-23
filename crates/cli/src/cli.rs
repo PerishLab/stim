@@ -9,10 +9,15 @@ use clap::{Parser, Subcommand};
 pub struct Cli {
     #[arg(long, env = "STIM_CONFIG", default_value = "stim.toml")]
     pub config: String,
-    #[arg(long, env = "STIM_BASE_URL", global = true)]
-    pub base_url: Option<String>,
-    #[arg(long, env = "STIM_REPLY_TOKEN", global = true, hide_env_values = true)]
-    pub reply_token: Option<String>,
+    #[arg(long = "base-url", env = "STIM_BASE_URL", global = true)]
+    pub url: Option<String>,
+    #[arg(
+        long = "reply-token",
+        env = "STIM_REPLY_TOKEN",
+        global = true,
+        hide_env_values = true
+    )]
+    pub token: Option<String>,
     #[command(subcommand)]
     pub command: Command,
 }
@@ -20,7 +25,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Command {
     #[command(subcommand)]
-    Service(ServiceCommand),
+    Service(Service),
     Send {
         text: String,
         #[arg(long = "as", env = "STIM_PARTICIPANT", default_value = "operator")]
@@ -47,6 +52,6 @@ pub enum Command {
 }
 
 #[derive(Subcommand)]
-pub enum ServiceCommand {
+pub enum Service {
     Serve,
 }

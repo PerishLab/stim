@@ -5,32 +5,28 @@ mod text;
 use anyhow::{Context, Result};
 use clap::Parser;
 
-use cli::{Cli, Command, ServiceCommand};
+use cli::{Cli, Command, Service};
 use stim::{config, server};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let Cli {
         config,
-        base_url,
-        reply_token,
+        url,
+        token,
         command,
     } = Cli::parse();
     match command {
-        Command::Service(ServiceCommand::Serve) => {
+        Command::Service(Service::Serve) => {
             let config = config::Config::load(&config)?;
             server::serve(config).await
         }
-        command => client(base_url, reply_token, command).await,
+        command => client(url, token, command).await,
     }
 }
 
-async fn client(
-    base_url: Option<String>,
-    reply_token: Option<String>,
-    command: Command,
-) -> Result<()> {
-    let base = base_url.unwrap_or_else(|| "http://127.0.0.1:43308".to_string());
+async fn client(url: Option<String>, token: Option<String>, command: Command) -> Result<()> {
+    let base = url.unwrap_or_else(|| "http://127.0.0.1:43308".to_string());
     let client = reqwest::Client::new();
     match command {
         Command::Send {
@@ -39,11 +35,11 @@ async fn client(
             soul,
             request_id,
         } => {
-            let request = stim_core::MessageRequest {
-                participant_id: participant,
-                soul_id: soul,
+            let request = stim_core::Post {
+                participant,
+                soul,
                 content: text,
-                request_id: request_id
+                request: request_id
                     .unwrap_or_else(|| format!("req_{}", uuid::Uuid::new_v4().simple())),
             };
             http::print(
@@ -73,18 +69,18 @@ async fn client(
         }
         Command::Reply { text, file, stdin } => {
             let content = text::read(text, file, stdin)?;
-            let strand_id = required_env("SANTI_STRAND_ID")?;
-            let turn_id = required_env("SANTI_TURN_ID")?;
-            let token = reply_token
+            let strand = required("SANTI_STRAND_ID")?;
+            let turn = required("SANTI_TURN_ID")?;
+            let token = token
                 .filter(|value| !value.trim().is_empty())
                 .ok_or_else(|| anyhow::anyhow!("missing --reply-token / STIM_REPLY_TOKEN"))?;
             http::print(
                 client
                     .post(format!("{}/api/v1/replies", trim(&base)))
                     .bearer_auth(token)
-                    .json(&stim_core::ReplyRequest {
-                        strand_id,
-                        turn_id,
+                    .json(&stim_core::Reply {
+                        strand,
+                        turn,
                         content,
                     })
                     .send()
@@ -101,7 +97,7 @@ fn trim(value: &str) -> &str {
     value.trim_end_matches('/')
 }
 
-fn required_env(name: &str) -> Result<String> {
+fn required(name: &str) -> Result<String> {
     std::env::var(name)
         .ok()
         .filter(|value| !value.trim().is_empty())

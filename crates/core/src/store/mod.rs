@@ -7,10 +7,10 @@ use std::sync::{Arc, Mutex};
 
 use rusqlite::{Connection, params};
 
-use crate::{Delivery, IngestReceipt, Message, ReplyRequest, ReplyResponse, Staged, Synced};
-use query::{cursor, early_by_turn, message_by_request, message_by_turn, participant_for_strand};
+use crate::{Delivery, Message, Receipt, Replied, Reply, Staged, Synced};
+use query::Query as _;
 use schema::SCHEMA;
-use write::{apply, bind, defer, materialize, now, staged, validate};
+use write::{Write as _, now, staged, validate};
 
 #[derive(Clone)]
 pub struct Store {
@@ -36,24 +36,22 @@ impl Store {
 
     pub fn stage(
         &self,
-        participant_id: &str,
-        soul_id: &str,
-        request_id: &str,
+        participant: &str,
+        soul: &str,
+        request: &str,
         content: &str,
     ) -> Result<Staged, String> {
-        validate(participant_id, soul_id, request_id, content)?;
+        validate(participant, soul, request, content)?;
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction().map_err(|error| error.to_string())?;
-        if let Some(message) = message_by_request(&tx, request_id)? {
-            if message.participant_id != participant_id
-                || message.soul_id.as_deref() != Some(soul_id)
+        if let Some(message) = tx.requested(request)? {
+            if message.participant != participant
+                || message.soul.as_deref() != Some(soul)
                 || message.content != content
             {
-                return Err(format!(
-                    "request {request_id} conflicts with a staged message"
-                ));
+                return Err(format!("request {request} conflicts with a staged message"));
             }
-            return Ok(staged(message, soul_id, request_id));
+            return Ok(staged(message, soul, request));
         }
         let now = now();
         tx.execute(
@@ -64,20 +62,18 @@ impl Store {
               soul_id = COALESCE(conversations.soul_id, excluded.soul_id),
               updated_at = excluded.updated_at
             "#,
-            params![participant_id, soul_id, now],
+            params![participant, soul, now],
         )
         .map_err(|error| error.to_string())?;
-        let existing_soul: Option<String> = tx
+        let held: Option<String> = tx
             .query_row(
                 "SELECT soul_id FROM conversations WHERE participant_id = ?1",
-                [participant_id],
+                [participant],
                 |row| row.get(0),
             )
             .map_err(|error| error.to_string())?;
-        if existing_soul.as_deref() != Some(soul_id) {
-            return Err(format!(
-                "participant {participant_id} belongs to another soul"
-            ));
+        if held.as_deref() != Some(soul) {
+            return Err(format!("participant {participant} belongs to another soul"));
         }
         let id = format!("msg_{}", uuid::Uuid::new_v4().simple());
         tx.execute(
@@ -86,33 +82,36 @@ impl Store {
               id, participant_id, author, soul_id, request_id, content, created_at
             ) VALUES (?1, ?2, 'human', ?3, ?4, ?5, ?6)
             "#,
-            params![id, participant_id, soul_id, request_id, content, now],
+            params![id, participant, soul, request, content, now],
         )
         .map_err(|error| error.to_string())?;
-        let message = message_by_request(&tx, request_id)?
+        let message = tx
+            .requested(request)?
             .ok_or_else(|| "staged message missing after insert".to_string())?;
         tx.commit().map_err(|error| error.to_string())?;
-        Ok(staged(message, soul_id, request_id))
+        Ok(staged(message, soul, request))
     }
 
-    pub fn accept(&self, request_id: &str, receipt: &IngestReceipt) -> Result<Message, String> {
+    pub fn accept(&self, request: &str, receipt: &Receipt) -> Result<Message, String> {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction().map_err(|error| error.to_string())?;
-        let message = message_by_request(&tx, request_id)?
-            .ok_or_else(|| format!("request {request_id} was not staged"))?;
-        bind(&tx, &message.participant_id, &receipt.strand_id)?;
+        let message = tx
+            .requested(request)?
+            .ok_or_else(|| format!("request {request} was not staged"))?;
+        tx.bind(&message.participant, &receipt.strand)?;
         tx.execute(
             "UPDATE messages SET strand_id = ?1, receipt_id = ?2 WHERE request_id = ?3",
-            params![receipt.strand_id, receipt.inbox_id, request_id],
+            params![receipt.strand, receipt.inbox, request],
         )
         .map_err(|error| error.to_string())?;
-        let message = message_by_request(&tx, request_id)?
+        let message = tx
+            .requested(request)?
             .ok_or_else(|| "accepted message missing after update".to_string())?;
         tx.commit().map_err(|error| error.to_string())?;
         Ok(message)
     }
 
-    pub fn poll(&self, participant_id: &str, since: i64) -> Result<Vec<Message>, String> {
+    pub fn poll(&self, participant: &str, since: i64) -> Result<Vec<Message>, String> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn
             .prepare(
@@ -126,22 +125,25 @@ impl Store {
             )
             .map_err(|error| error.to_string())?;
         let rows = stmt
-            .query_map(params![participant_id, since.max(0)], query::map_message)
+            .query_map(params![participant, since.max(0)], query::mapped)
             .map_err(|error| error.to_string())?;
         rows.map(|row| row.map_err(|error| error.to_string()))
             .collect()
     }
 
     pub fn pending(&self) -> Result<Vec<Staged>, String> {
-        query::pending(&self.conn.lock().unwrap())?
+        self.conn
+            .lock()
+            .unwrap()
+            .pending()?
             .into_iter()
             .map(|message| {
                 let soul = message
-                    .soul_id
+                    .soul
                     .clone()
                     .ok_or_else(|| format!("pending message {} has no soul", message.id))?;
                 let request = message
-                    .request_id
+                    .request
                     .clone()
                     .ok_or_else(|| format!("pending message {} has no request", message.id))?;
                 Ok(staged(message, &soul, &request))
@@ -149,26 +151,26 @@ impl Store {
             .collect()
     }
 
-    pub fn reply(&self, request: &ReplyRequest) -> Result<ReplyResponse, String> {
-        if request.strand_id.trim().is_empty()
-            || request.turn_id.trim().is_empty()
+    pub fn reply(&self, request: &Reply) -> Result<Replied, String> {
+        if request.strand.trim().is_empty()
+            || request.turn.trim().is_empty()
             || request.content.trim().is_empty()
         {
-            return Err("strand_id, turn_id, and content must not be empty".to_string());
+            return Err("strand, turn, and content must not be empty".to_string());
         }
-        if request.strand_id.len() > 256 || request.turn_id.len() > 256 {
-            return Err("strand_id or turn_id is too long".to_string());
+        if request.strand.len() > 256 || request.turn.len() > 256 {
+            return Err("strand or turn is too long".to_string());
         }
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction().map_err(|error| error.to_string())?;
-        let participant_id = participant_for_strand(&tx, &request.strand_id)?;
-        if let Some(existing) = message_by_turn(&tx, &request.turn_id)? {
-            if participant_id.as_deref() == Some(existing.participant_id.as_str())
-                && existing.strand_id.as_deref() == Some(request.strand_id.as_str())
+        let held = tx.participant(&request.strand)?;
+        if let Some(existing) = tx.turned(&request.turn)? {
+            if held.as_deref() == Some(existing.participant.as_str())
+                && existing.strand.as_deref() == Some(request.strand.as_str())
                 && existing.delivery == Some(Delivery::Explicit)
                 && existing.content == request.content
             {
-                return Ok(ReplyResponse {
+                return Ok(Replied {
                     message: Some(existing),
                     pending: false,
                     deduplicated: true,
@@ -176,12 +178,12 @@ impl Store {
             }
             return Err(format!(
                 "turn {} conflicts with an existing reply",
-                request.turn_id
+                request.turn
             ));
         }
-        if let Some((strand, content)) = early_by_turn(&tx, &request.turn_id)? {
-            if strand == request.strand_id && content == request.content {
-                return Ok(ReplyResponse {
+        if let Some((strand, content)) = tx.early(&request.turn)? {
+            if strand == request.strand && content == request.content {
+                return Ok(Replied {
                     message: None,
                     pending: true,
                     deduplicated: true,
@@ -189,32 +191,32 @@ impl Store {
             }
             return Err(format!(
                 "turn {} conflicts with a pending reply",
-                request.turn_id
+                request.turn
             ));
         }
-        defer(&tx, request)?;
-        if let Some(participant_id) = participant_id.as_deref() {
-            materialize(&tx, participant_id, &request.strand_id)?;
+        tx.defer(request)?;
+        if let Some(participant) = held.as_deref() {
+            tx.settle(participant, &request.strand)?;
         }
-        let message = message_by_turn(&tx, &request.turn_id)?;
+        let message = tx.turned(&request.turn)?;
         tx.commit().map_err(|error| error.to_string())?;
-        Ok(ReplyResponse {
+        Ok(Replied {
             message,
-            pending: participant_id.is_none(),
+            pending: held.is_none(),
             deduplicated: false,
         })
     }
 
-    pub fn sync(&self, batch: &crate::TurnEventBatch) -> Result<Synced, String> {
+    pub fn sync(&self, batch: &crate::Events) -> Result<Synced, String> {
         let mut conn = self.conn.lock().unwrap();
         let tx = conn.transaction().map_err(|error| error.to_string())?;
-        let current = cursor(&tx)?;
+        let current = tx.cursor()?;
         if batch.cursor < current {
             return Err("turn event cursor moved backwards".to_string());
         }
         let mut inserted = 0;
         for event in &batch.events {
-            inserted += usize::from(apply(&tx, event)?);
+            inserted += usize::from(tx.apply(event)?);
         }
         tx.execute(
             "UPDATE state SET value = ?1 WHERE key = 'santi_cursor'",
@@ -229,6 +231,6 @@ impl Store {
     }
 
     pub fn cursor(&self) -> Result<i64, String> {
-        cursor(&self.conn.lock().unwrap())
+        self.conn.lock().unwrap().cursor()
     }
 }

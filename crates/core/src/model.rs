@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-pub const LABEL_PREFIX: &str = "stim:";
+pub const MARK: &str = "stim:";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -20,73 +20,83 @@ pub enum Delivery {
 pub struct Message {
     pub seq: i64,
     pub id: String,
-    pub participant_id: String,
+    pub participant: String,
     pub author: Author,
-    pub soul_id: Option<String>,
-    pub strand_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub request_id: Option<String>,
-    pub receipt_id: Option<String>,
+    pub soul: Option<String>,
+    pub strand: Option<String>,
+    pub turn: Option<String>,
+    pub request: Option<String>,
+    pub receipt: Option<String>,
     pub delivery: Option<Delivery>,
     pub content: String,
-    pub created_at: String,
+    pub created: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct IngestRequest {
-    pub soul_id: String,
+pub struct Ingest {
+    #[serde(rename = "soul_id")]
+    pub soul: String,
     pub label: String,
     pub text: String,
-    pub request_id: String,
-    pub source_ref: Option<String>,
+    #[serde(rename = "request_id")]
+    pub request: String,
+    #[serde(rename = "source_ref")]
+    pub source: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct IngestReceipt {
-    pub strand_id: String,
-    pub inbox_id: String,
+pub struct Receipt {
+    #[serde(rename = "strand_id")]
+    pub strand: String,
+    #[serde(rename = "inbox_id")]
+    pub inbox: String,
     pub warning: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MessageRequest {
-    pub participant_id: String,
-    pub soul_id: Option<String>,
+pub struct Post {
+    pub participant: String,
+    pub soul: Option<String>,
     pub content: String,
-    pub request_id: String,
+    pub request: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MessageResponse {
+pub struct Posted {
     pub message: Message,
-    pub receipt: IngestReceipt,
+    pub receipt: Receipt,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TurnEvent {
+pub struct Event {
     pub id: String,
-    pub strand_id: String,
-    pub turn_id: String,
-    pub external_label: String,
-    pub final_text: String,
-    pub completed_at: String,
+    #[serde(rename = "strand_id")]
+    pub strand: String,
+    #[serde(rename = "turn_id")]
+    pub turn: String,
+    #[serde(rename = "external_label")]
+    pub label: String,
+    #[serde(rename = "final_text")]
+    pub text: String,
+    #[serde(rename = "completed_at")]
+    pub completed: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct TurnEventBatch {
+pub struct Events {
     pub cursor: i64,
-    pub events: Vec<TurnEvent>,
+    pub events: Vec<Event>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReplyRequest {
-    pub strand_id: String,
-    pub turn_id: String,
+pub struct Reply {
+    pub strand: String,
+    pub turn: String,
     pub content: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReplyResponse {
+pub struct Replied {
     pub message: Option<Message>,
     pub pending: bool,
     pub deduplicated: bool,
@@ -95,7 +105,7 @@ pub struct ReplyResponse {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Staged {
     pub message: Message,
-    pub request: IngestRequest,
+    pub request: Ingest,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -105,11 +115,9 @@ pub struct Synced {
 }
 
 pub fn label(participant: &str) -> String {
-    format!("{LABEL_PREFIX}{participant}")
+    format!("{MARK}{participant}")
 }
 
 pub fn participant(label: &str) -> Option<&str> {
-    label
-        .strip_prefix(LABEL_PREFIX)
-        .filter(|value| !value.is_empty())
+    label.strip_prefix(MARK).filter(|value| !value.is_empty())
 }

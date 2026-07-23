@@ -1,4 +1,4 @@
-use stim_core::{Delivery, IngestReceipt, ReplyRequest, Store, TurnEvent, TurnEventBatch};
+use stim_core::{Delivery, Event, Events, Receipt, Reply, Store};
 
 fn store() -> (tempfile::TempDir, Store) {
     let temp = tempfile::tempdir().expect("temp dir");
@@ -7,7 +7,7 @@ fn store() -> (tempfile::TempDir, Store) {
 }
 
 #[test]
-fn send_is_durable_and_idempotent() {
+fn durable() {
     let (_temp, store) = store();
     let staged = store
         .stage("operator", "soul_default", "request_1", "hello")
@@ -20,14 +20,14 @@ fn send_is_durable_and_idempotent() {
     let accepted = store
         .accept(
             "request_1",
-            &IngestReceipt {
-                strand_id: "strand_1".to_string(),
-                inbox_id: "inbox_1".to_string(),
+            &Receipt {
+                strand: "strand_1".to_string(),
+                inbox: "inbox_1".to_string(),
                 warning: None,
             },
         )
         .expect("accept");
-    assert_eq!(accepted.strand_id.as_deref(), Some("strand_1"));
+    assert_eq!(accepted.strand.as_deref(), Some("strand_1"));
     assert!(
         store
             .stage("other", "soul_default", "request_1", "hello")
@@ -36,11 +36,11 @@ fn send_is_durable_and_idempotent() {
 }
 
 #[test]
-fn cursor_advances_and_automatic_replies_deduplicate() {
+fn cursor() {
     let (_temp, store) = store();
     let event = event("turn_1", "complete");
     let first = store
-        .sync(&TurnEventBatch {
+        .sync(&Events {
             cursor: 7,
             events: vec![event.clone()],
         })
@@ -48,7 +48,7 @@ fn cursor_advances_and_automatic_replies_deduplicate() {
     assert_eq!(first.inserted, 1);
     assert_eq!(store.cursor().expect("cursor"), 7);
     let second = store
-        .sync(&TurnEventBatch {
+        .sync(&Events {
             cursor: 9,
             events: vec![event],
         })
@@ -58,7 +58,7 @@ fn cursor_advances_and_automatic_replies_deduplicate() {
 }
 
 #[test]
-fn explicit_reply_wins_over_completion() {
+fn explicit() {
     let (_temp, store) = store();
     store
         .stage("operator", "soul_default", "request_1", "hello")
@@ -66,16 +66,16 @@ fn explicit_reply_wins_over_completion() {
     store
         .accept(
             "request_1",
-            &IngestReceipt {
-                strand_id: "strand_1".to_string(),
-                inbox_id: "inbox_1".to_string(),
+            &Receipt {
+                strand: "strand_1".to_string(),
+                inbox: "inbox_1".to_string(),
                 warning: None,
             },
         )
         .expect("accept");
-    let request = ReplyRequest {
-        strand_id: "strand_1".to_string(),
-        turn_id: "turn_1".to_string(),
+    let request = Reply {
+        strand: "strand_1".to_string(),
+        turn: "turn_1".to_string(),
         content: "early".to_string(),
     };
     let first = store.reply(&request).expect("reply");
@@ -86,7 +86,7 @@ fn explicit_reply_wins_over_completion() {
     );
     assert!(store.reply(&request).expect("repeat").deduplicated);
     let synced = store
-        .sync(&TurnEventBatch {
+        .sync(&Events {
             cursor: 3,
             events: vec![event("turn_1", "final")],
         })
@@ -98,14 +98,14 @@ fn explicit_reply_wins_over_completion() {
 }
 
 #[test]
-fn early_reply_waits_for_an_ambiguous_ingest_mapping() {
+fn early() {
     let (_temp, store) = store();
     store
         .stage("operator", "soul_default", "request_1", "hello")
         .expect("stage");
-    let request = ReplyRequest {
-        strand_id: "strand_1".to_string(),
-        turn_id: "turn_1".to_string(),
+    let request = Reply {
+        strand: "strand_1".to_string(),
+        turn: "turn_1".to_string(),
         content: "early".to_string(),
     };
     let pending = store.reply(&request).expect("pending reply");
@@ -115,9 +115,9 @@ fn early_reply_waits_for_an_ambiguous_ingest_mapping() {
     store
         .accept(
             "request_1",
-            &IngestReceipt {
-                strand_id: "strand_1".to_string(),
-                inbox_id: "inbox_1".to_string(),
+            &Receipt {
+                strand: "strand_1".to_string(),
+                inbox: "inbox_1".to_string(),
                 warning: None,
             },
         )
@@ -128,13 +128,13 @@ fn early_reply_waits_for_an_ambiguous_ingest_mapping() {
     assert_eq!(messages[1].delivery, Some(Delivery::Explicit));
 }
 
-fn event(turn: &str, text: &str) -> TurnEvent {
-    TurnEvent {
+fn event(turn: &str, text: &str) -> Event {
+    Event {
         id: format!("event_{turn}"),
-        strand_id: "strand_1".to_string(),
-        turn_id: turn.to_string(),
-        external_label: "stim:operator".to_string(),
-        final_text: text.to_string(),
-        completed_at: "2026-07-22T00:00:00Z".to_string(),
+        strand: "strand_1".to_string(),
+        turn: turn.to_string(),
+        label: "stim:operator".to_string(),
+        text: text.to_string(),
+        completed: "2026-07-22T00:00:00Z".to_string(),
     }
 }

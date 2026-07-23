@@ -33,16 +33,16 @@ impl Default for Config {
 #[derive(Clone, Debug, Default, Cascade)]
 #[cascade(section)]
 pub struct Santi {
-    pub base_url: String,
-    pub credential_env: String,
-    pub soul_id: String,
+    pub url: String,
+    pub credential: String,
+    pub soul: String,
 }
 
 #[derive(Clone, Debug, Default, Cascade)]
 #[cascade(section)]
 pub struct Reply {
     pub address: String,
-    pub credential_sha256: String,
+    pub digest: String,
 }
 
 impl Config {
@@ -56,28 +56,28 @@ impl Config {
         if config.reply.address.trim().is_empty() {
             anyhow::bail!("reply.address must not be empty");
         }
-        if config.santi.base_url.trim().is_empty()
-            || config.santi.credential_env.trim().is_empty()
-            || config.santi.soul_id.trim().is_empty()
+        if config.santi.url.trim().is_empty()
+            || config.santi.credential.trim().is_empty()
+            || config.santi.soul.trim().is_empty()
         {
-            anyhow::bail!("santi base_url, credential_env, and soul_id are required");
+            anyhow::bail!("santi url, credential, and soul are required");
         }
-        let digest = config.reply.credential_sha256.trim().to_ascii_lowercase();
+        let digest = config.reply.digest.trim().to_ascii_lowercase();
         if digest.len() != 64 || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-            anyhow::bail!("reply.credential_sha256 must be 64 hexadecimal characters");
+            anyhow::bail!("reply.digest must be 64 hexadecimal characters");
         }
-        config.reply.credential_sha256 = digest;
+        config.reply.digest = digest;
         let parent = path.parent().unwrap_or_else(|| Path::new("."));
         config.store.path = config.store.rebased(parent).to_string_lossy().into_owned();
         Ok(config)
     }
 
-    pub fn santi_token(&self) -> Result<String> {
-        std::env::var(&self.santi.credential_env)
-            .with_context(|| format!("missing credential env {}", self.santi.credential_env))
+    pub fn token(&self) -> Result<String> {
+        std::env::var(&self.santi.credential)
+            .with_context(|| format!("missing credential env {}", self.santi.credential))
             .and_then(|value| {
                 if value.trim().is_empty() {
-                    anyhow::bail!("credential env {} is empty", self.santi.credential_env)
+                    anyhow::bail!("credential env {} is empty", self.santi.credential)
                 }
                 Ok(value)
             })
