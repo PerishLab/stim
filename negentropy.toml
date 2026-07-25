@@ -31,3 +31,11 @@ single = true
 [[grant]]
 syntax = "test"
 paths = ["crates/*/tests/**/*.rs"]
+
+[[grant]]
+syntax = "environment"
+paths = [
+  "crates/cli/src/config.rs",
+  "crates/cli/src/main.rs",
+  "crates/*/tests/**/*.rs",
+]
