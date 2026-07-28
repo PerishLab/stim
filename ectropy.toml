@@ -39,3 +39,5 @@ paths = [
   "crates/cli/src/main.rs",
   "crates/*/tests/**/*.rs",
 ]
+
+[vocabulary]

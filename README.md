@@ -92,7 +92,7 @@ runseal :guard
 ```
 
 The guard runs Rust formatting, clippy, tests, Deno checks, and the repository's
-negentropy constitution. Release assets are installed through the R2-backed
+ectropy constitution. Release assets are installed through the R2-backed
 `manage.sh`, which verifies the published checksum before extraction. Publishing
 remains inert until the repository's `STIM_RELEASES_*` variables and secrets are
 provisioned.

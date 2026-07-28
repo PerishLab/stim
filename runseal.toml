@@ -9,5 +9,5 @@ permissions = [
   "--allow-write=.",
   "--allow-env",
   "--allow-net",
-  "--allow-run=git,cargo,negentropy,deno,tea,sh,runseal",
+  "--allow-run=git,cargo,ectropy,deno,tea,sh,runseal,rustc,node",
 ]

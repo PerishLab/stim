@@ -16,6 +16,7 @@ await init({
     "git",
     "deno",
     "cargo",
+    "ectropy",
     "tea",
     "runseal",
     "sh",
@@ -23,8 +24,7 @@ await init({
   paths: [
     "Cargo.toml",
     "Cargo.lock",
-    "negentropy.toml",
-    "vocabulary.toml",
+    "ectropy.toml",
     "manage.sh",
     "runseal.toml",
     ".runseal/deno.json",
