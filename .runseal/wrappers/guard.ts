@@ -31,6 +31,7 @@ await guard(
         ".runseal/wrappers/land.ts",
       ]]],
     },
+    { label: "plumb doctor", runs: [["plumb", ["doctor", "."]]] },
   ],
   Deno.args,
   { checker: ["ectropy", ["--strict", "."]] },

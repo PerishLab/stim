@@ -17,6 +17,7 @@ await init({
     "deno",
     "cargo",
     "ectropy",
+    "plumb",
     "tea",
     "runseal",
     "sh",
