@@ -27,3 +27,16 @@ owns souls, strands, turns, and provider execution.
   `ectropy --strict .`.
 - Do not deploy, publish releases, create credentials, or mutate live services without
   explicit operator authorization.
+
+## Release
+
+- `manage.sh` leaves exactly one version under the install root. Earlier
+  versions are removed once the new binary is linked and answers `--version`,
+  and each removal is named. The versioned root was never a rollback cache:
+  `install --version <older>` refetches, so nothing ever read what accumulated.
+- A stable release refuses to publish without
+  `docs/CHANGELOG/v<version>/{en,zh}/{INDEX.md,MIGRATION.md}`, enforced by the
+  `Changelog` step in `release-stable.yml` before anything irreversible.
+  `plumb doctor` does not check this: a changelog is owed by a release, not by a
+  working tree. A release requiring nothing of anyone still writes MIGRATION.md
+  saying so. See `plumb/docs/changelog.md`.

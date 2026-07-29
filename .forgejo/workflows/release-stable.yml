@@ -44,6 +44,9 @@ jobs:
           set -eu
           deno run --allow-read "--allow-write=." --allow-env --allow-net "--allow-run=git,cargo,ectropy,plumb,deno,tea,sh,runseal,rustc,node" --config .runseal/deno.json --lock .runseal/deno.lock --frozen=true .runseal/wrappers/guard.ts --fresh
 
+      - name: Changelog
+        run: plumb changelog . --version "$RELEASE_VERSION"
+
       - name: Package
         run: |
           set -eu

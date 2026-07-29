@@ -53,7 +53,13 @@ while [ $# -gt 0 ]; do
         "Usage:" \
         "  manage.sh install [--channel stable|beta] [--version vX.Y.Z]" \
         "  manage.sh update  [--channel stable|beta] [--version vX.Y.Z]" \
-        "  manage.sh uninstall [--version vX.Y.Z]"
+        "  manage.sh uninstall [--version vX.Y.Z]" \
+        "" \
+        "install and update leave exactly one version on disk. Earlier versions" \
+        "are removed once the new binary is linked and answers --version, and" \
+        "each removal is named. Rolling back is install --version <older>, which" \
+        "fetches that version again; released artifacts are immutable and always" \
+        "retrievable."
       exit 0
       ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
@@ -130,6 +136,22 @@ install_stim() {
   ln -s "$INSTALL_ROOT/$VERSION/stim" "$link"
   "$link" --version
   printf 'installed stim to %s\n' "$link"
+  sweep
+}
+
+sweep() {
+  swept=""
+  for seat in "$INSTALL_ROOT"/*; do
+    [ -d "$seat" ] || continue
+    held=$(basename "$seat")
+    if [ "$held" != "$VERSION" ]; then
+      rm -rf "$seat"
+      swept="$swept $held"
+    fi
+  done
+  if [ -n "$swept" ]; then
+    printf 'swept:%s\n' "$swept"
+  fi
 }
 
 uninstall_stim() {
