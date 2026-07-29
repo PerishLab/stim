@@ -1,14 +1,35 @@
+[[boundary]]
+allow = ["word"]
+note = "plumb's web law requires hooks to be named use-*.ts; that spelling is two words by construction"
+paths = ["apps/*/src/lib/hooks/**"]
+
+[[boundary]]
+allow = ["path"]
+note = "vite and vitest require root-level config files; path law anchors to src and tests"
+paths = [
+  "apps/web/vite.config.ts",
+  "apps/web/vitest.config.ts",
+]
+
 [scan]
 include = [
+  "apps/**/*.css",
+  "apps/**/*.scss",
+  "apps/**/*.ts",
+  "apps/**/*.tsx",
   "crates/**/*.rs",
   "docs/**/*.md",
 ]
 exclude = [
+  "**/dist/**",
+  "**/node_modules/**",
   "**/target/**",
 ]
 
 [module]
 roots = [
+  "apps/*/src",
+  "apps/*/tests",
   "crates/*/src",
   "crates/*/tests",
   "docs",
@@ -30,11 +51,17 @@ single = true
 
 [[grant]]
 syntax = "test"
-paths = ["crates/*/tests/**/*.rs"]
+paths = [
+  "apps/*/tests/**/*.test.ts",
+  "apps/*/tests/**/*.test.tsx",
+  "crates/*/tests/**/*.rs",
+]
 
 [[grant]]
 syntax = "environment"
 paths = [
+  "apps/*/tests/**/*.test.ts",
+  "apps/*/tests/**/*.test.tsx",
   "crates/cli/src/config.rs",
   "crates/cli/src/main.rs",
   "crates/*/tests/**/*.rs",

@@ -10,3 +10,11 @@ args = ["run", "--locked", "-p", "stim", "--", "service", "serve"]
 cwd = "."
 mode = "dev"
 health_url = "http://127.0.0.1:43308/health"
+
+[[sidecars]]
+name = "web"
+command = "pnpm"
+args = ["--filter", "@stim/web", "dev"]
+cwd = "."
+mode = "dev"
+health_url = "http://127.0.0.1:5173/"
