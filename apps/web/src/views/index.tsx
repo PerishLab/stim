@@ -1,6 +1,6 @@
 import { Frame, Hero, Note } from "@perish/react-components";
 import type { ReactNode } from "react";
-import { useHealth } from "../lib/hooks/use-health";
+import { useHealth } from "../lib/hooks/health";
 
 export default function Home(): ReactNode {
 	const health = useHealth();

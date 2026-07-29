@@ -1,9 +1,4 @@
 [[boundary]]
-allow = ["word"]
-note = "plumb's web law requires hooks to be named use-*.ts; that spelling is two words by construction"
-paths = ["apps/*/src/lib/hooks/**"]
-
-[[boundary]]
 allow = ["path"]
 note = "vite and vitest require root-level config files; path law anchors to src and tests"
 paths = [
