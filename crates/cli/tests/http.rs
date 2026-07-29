@@ -140,8 +140,8 @@ async fn ingest(
     (
         StatusCode::ACCEPTED,
         Json(json!({
-            "strand_id": "strand_1",
-            "inbox_id": "inbox_1",
+            "strand": "strand_1",
+            "inbox": "inbox_1",
             "warning": null
         })),
     )

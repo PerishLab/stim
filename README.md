@@ -32,7 +32,7 @@ Register only the SHA-256 digest of that token with Santi's operator-authenticat
 ```json
 {
   "id": "stim",
-  "label_prefix": "stim:",
+  "prefix": "stim:",
   "digest": "<64 lowercase hexadecimal characters>"
 }
 ```
@@ -70,13 +70,18 @@ stim poll --as operator --since 0
 
 An early reply runs on the Santi host during a turn. Santi already injects
 `SANTI_STRAND_ID` and `SANTI_TURN_ID`; configure the remote endpoint and the separate
-reply token there:
+reply token as soul or strand turn-shell environment:
 
 ```sh
-export STIM_BASE_URL='https://stim.example.com:43309'
-export STIM_REPLY_TOKEN='<raw reply token>'
+santi env set soul soul_default STIM_BASE_URL https://stim.example.com:43309
+santi env set soul soul_default STIM_REPLY_TOKEN env://STIM_REPLY_TOKEN
 stim reply 'I am still working'
 ```
+
+The `env://STIM_REPLY_TOKEN` reference resolves from the Santi server process,
+keeping the raw reply token out of Santi's estate. It applies to synchronous
+turn shells; detached Santi jobs do not receive soul or strand environment
+declarations in v1.
 
 Repeating the same reply for the same turn is idempotent. A different payload for an
 already-used turn is rejected. If an explicit early reply exists, the automatic final

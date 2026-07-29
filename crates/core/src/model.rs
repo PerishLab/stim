@@ -34,21 +34,16 @@ pub struct Message {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Ingest {
-    #[serde(rename = "soul_id")]
     pub soul: String,
     pub label: String,
     pub text: String,
-    #[serde(rename = "request_id")]
     pub request: String,
-    #[serde(rename = "source_ref")]
     pub source: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Receipt {
-    #[serde(rename = "strand_id")]
     pub strand: String,
-    #[serde(rename = "inbox_id")]
     pub inbox: String,
     pub warning: Option<serde_json::Value>,
 }
@@ -70,15 +65,10 @@ pub struct Posted {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Event {
     pub id: String,
-    #[serde(rename = "strand_id")]
     pub strand: String,
-    #[serde(rename = "turn_id")]
     pub turn: String,
-    #[serde(rename = "external_label")]
     pub label: String,
-    #[serde(rename = "final_text")]
     pub text: String,
-    #[serde(rename = "completed_at")]
     pub completed: String,
 }
 
