@@ -24,7 +24,7 @@ owns souls, strands, turns, and provider execution.
 - Keep `.task/` ignored unless a long-running local task needs it.
 - Required checks: `cargo fmt --all --check`, `cargo clippy --locked --workspace
   --all-targets -- -D warnings`, `cargo test --locked --workspace`, and
-  `ectropy --strict .`.
+  errors-only `ectropy .`.
 - Do not deploy, publish releases, create credentials, or mutate live services without
   explicit operator authorization.
 

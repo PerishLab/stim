@@ -22,9 +22,15 @@ jobs:
 
       - name: Install Ectropy
         uses: PerishLab/actions/setup-ectropy@main
+        with:
+          channel: beta
+          version: v0.4.0-beta.1
 
       - name: Install Plumb
         uses: PerishLab/actions/setup-plumb@main
+        with:
+          channel: beta
+          version: v0.16.0-beta.1
 
       - name: Guard
         run: |
