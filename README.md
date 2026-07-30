@@ -97,7 +97,31 @@ runseal :guard
 ```
 
 The guard runs Rust formatting, clippy, tests, Deno checks, and the repository's
-ectropy constitution. Release assets are installed through the R2-backed
-`manage.sh`, which verifies the published checksum before extraction. Publishing
-remains inert until the repository's `STIM_RELEASES_*` variables and secrets are
-provisioned.
+ectropy constitution. `plumb.toml` records the binary release shape; stable
+Plumb and the shared Actions workflow own build, packaging, managers, and
+sealed delivery. Publishing remains inert until Stim enters that lifecycle and
+its release capabilities are provisioned.
+
+Stable is the canonical default install:
+
+```sh
+curl -fsSL https://releases.stim.perish.uk/manage.sh | sh
+```
+
+Every non-stable install names one exact version and two isolated paths. For
+example:
+
+```sh
+version=v0.2.0-beta.1
+seat="$HOME/.local/opt/stim-$version"
+curl -fsSL https://releases.stim.perish.uk/manage.sh |
+  sh -s -- install \
+    --channel beta \
+    --version "$version" \
+    --install-root "$seat/install" \
+    --bin-dir "$seat/bin"
+```
+
+The root manager and default paths belong to stable. Every channel has an exact
+seal at `v1/releases/<channel>/<version>/seal.json`; only stable has a moving
+pointer and root manager.

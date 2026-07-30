@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 #[derive(Parser)]
 #[command(
     name = "stim",
-    version,
+    version = plumb::version!("STIM"),
     about = "Standalone message downstream for santi"
 )]
 pub struct Cli {

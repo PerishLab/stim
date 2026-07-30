@@ -1,0 +1,5 @@
+[release]
+product = "stim"
+authority = "https://releases.stim.perish.uk"
+binaries = ["stim"]
+targets = ["x86_64-unknown-linux-gnu"]
