@@ -80,8 +80,11 @@ pub struct Events {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Reply {
+    pub soul: String,
     pub strand: String,
     pub turn: String,
+    pub call: String,
+    pub effect: String,
     pub content: String,
 }
 

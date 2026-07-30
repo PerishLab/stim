@@ -12,5 +12,11 @@ soul = "soul_default"
 
 [reply]
 address = "0.0.0.0:43309"
-# printf '%s' "$STIM_REPLY_TOKEN" | sha256sum
-digest = "0000000000000000000000000000000000000000000000000000000000000000"
+issuer = "santi.example.com"
+audience = "stim.reply"
+maximum_ttl_seconds = 300
+
+# Unpadded base64url Ed25519 public keys. Keep the retiring key here through
+# the maximum capability TTL when rotating.
+[reply_keys]
+key_2026 = "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw"

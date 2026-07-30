@@ -7,15 +7,20 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use sha2::{Digest as _, Sha256};
 
-use crate::config::Config;
+use crate::{capability, config::Config};
 
 #[derive(Clone)]
 struct App {
     config: Config,
     store: stim_core::Store,
     santi: crate::santi::Client,
+}
+
+#[derive(Clone)]
+struct Replies {
+    verifier: capability::Verifier,
+    store: stim_core::Store,
 }
 
 #[derive(Deserialize)]
@@ -28,7 +33,7 @@ pub async fn serve(config: Config) -> Result<()> {
     let token = config.token()?;
     let santi = crate::santi::Client::new(&config.santi.url, &token)?;
     let main = front(config.clone(), store.clone(), santi.clone());
-    let replies = back(config.clone(), store.clone(), santi.clone());
+    let replies = back(config.clone(), store.clone())?;
     workers(store, santi);
     let door = tokio::net::TcpListener::bind(config.listen.address())
         .await
@@ -76,14 +81,17 @@ pub fn front(config: Config, store: stim_core::Store, santi: crate::santi::Clien
         }))
 }
 
-pub fn back(config: Config, store: stim_core::Store, santi: crate::santi::Client) -> Router {
-    Router::new()
+pub fn back(config: Config, store: stim_core::Store) -> Result<Router> {
+    let verifier = capability::Verifier::new(
+        &config.reply.issuer,
+        &config.reply.audience,
+        config.reply.maximum_ttl_seconds,
+        &config.reply_keys,
+    )
+    .map_err(anyhow::Error::msg)?;
+    Ok(Router::new()
         .route("/api/v1/replies", post(reply))
-        .with_state(Arc::new(App {
-            config,
-            store,
-            santi,
-        }))
+        .with_state(Arc::new(Replies { verifier, store })))
 }
 
 async fn health() -> Json<serde_json::Value> {
@@ -132,20 +140,19 @@ async fn poll(
 }
 
 async fn reply(
-    State(app): State<Arc<App>>,
+    State(app): State<Arc<Replies>>,
     headers: HeaderMap,
     Json(request): Json<stim_core::Reply>,
 ) -> Result<Json<stim_core::Replied>, Fault> {
-    let digest = headers
+    let capability = headers
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.strip_prefix("Bearer "))
-        .map(|token| hex::encode(Sha256::digest(token.as_bytes())))
         .unwrap_or_default();
-    if !same(&digest, &app.config.reply.digest) {
+    if app.verifier.verify(capability, &request).is_err() {
         return Err(fault(
             StatusCode::UNAUTHORIZED,
-            "invalid credential".to_string(),
+            "invalid capability".to_string(),
         ));
     }
     app.store.reply(&request).map(Json).map_err(conflict)
@@ -167,17 +174,6 @@ fn internal(error: String) -> Fault {
 
 fn upstream(error: anyhow::Error) -> Fault {
     fault(StatusCode::BAD_GATEWAY, error.to_string())
-}
-
-fn same(left: &str, right: &str) -> bool {
-    left.len() == right.len()
-        && left
-            .bytes()
-            .zip(right.bytes())
-            .fold(0_u8, |difference, (left, right)| {
-                difference | (left ^ right)
-            })
-            == 0
 }
 
 async fn shutdown() {

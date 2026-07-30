@@ -1,13 +1,17 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    sync::{Arc, Mutex},
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use axum::body::{Body, to_bytes};
 use axum::extract::State;
 use axum::http::{Request, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
+use ed25519_dalek::{Signer as _, SigningKey};
 use plumb::config::{Kind, Listen, Store as StoreConfig};
 use serde_json::json;
-use sha2::{Digest as _, Sha256};
 use stim::config::{Config, Reply, Santi};
 use stim_core::{Ingest, Store};
 use tower::ServiceExt as _;
@@ -39,7 +43,7 @@ async fn roundtrip() {
     let santi = stim::santi::Client::new(&format!("http://{address}"), "santi-secret")
         .expect("santi client");
     let app = stim::server::front(config.clone(), store.clone(), santi.clone());
-    let replies = stim::server::back(config, store.clone(), santi.clone());
+    let replies = stim::server::back(config, store.clone()).expect("reply app");
 
     let response = app
         .clone()
@@ -85,8 +89,11 @@ async fn roundtrip() {
     assert_eq!(seen.0.lock().unwrap().len(), 2);
 
     let reply = json!({
+        "soul": "soul_default",
         "strand": "strand_1",
         "turn": "turn_1",
+        "call": "call_1",
+        "effect": "effect_1",
         "content": "early"
     });
     let missing = app
@@ -101,21 +108,44 @@ async fn roundtrip() {
         .await
         .expect("denied response");
     assert_eq!(denied.status(), StatusCode::UNAUTHORIZED);
-    let accepted = replies
+    let legacy = replies
         .clone()
         .oneshot(framed(
             "/api/v1/replies",
             reply.clone(),
-            Some("reply-secret"),
+            Some("legacy-static-token"),
         ))
+        .await
+        .expect("legacy response");
+    assert_eq!(legacy.status(), StatusCode::UNAUTHORIZED);
+    let capability = capability(&reply);
+    let mut mismatched = reply.clone();
+    mismatched["turn"] = json!("turn_other");
+    let denied = replies
+        .clone()
+        .oneshot(framed("/api/v1/replies", mismatched, Some(&capability)))
+        .await
+        .expect("mismatch response");
+    assert_eq!(denied.status(), StatusCode::UNAUTHORIZED);
+    let accepted = replies
+        .clone()
+        .oneshot(framed("/api/v1/replies", reply.clone(), Some(&capability)))
         .await
         .expect("reply response");
     assert_eq!(accepted.status(), StatusCode::OK);
     let accepted = body(accepted).await;
     assert_eq!(accepted["pending"], false);
     assert!(accepted["message"].is_object());
+    let mut changed = reply.clone();
+    changed["content"] = json!("changed");
+    let conflict = replies
+        .clone()
+        .oneshot(framed("/api/v1/replies", changed, Some(&capability)))
+        .await
+        .expect("conflict response");
+    assert_eq!(conflict.status(), StatusCode::CONFLICT);
     let repeated = replies
-        .oneshot(framed("/api/v1/replies", reply, Some("reply-secret")))
+        .oneshot(framed("/api/v1/replies", reply, Some(&capability)))
         .await
         .expect("repeat response");
     assert!(body(repeated).await["deduplicated"].as_bool().unwrap());
@@ -173,9 +203,41 @@ fn config(base: String, path: std::path::PathBuf) -> Config {
         },
         reply: Reply {
             address: "127.0.0.1:0".to_string(),
-            digest: hex::encode(Sha256::digest(b"reply-secret")),
+            issuer: "santi.example".to_string(),
+            audience: "stim.reply".to_string(),
+            maximum_ttl_seconds: 300,
         },
+        reply_keys: [(
+            "test-2026".to_string(),
+            URL_SAFE_NO_PAD.encode(SigningKey::from_bytes(&[7; 32]).verifying_key().as_bytes()),
+        )]
+        .into_iter()
+        .collect(),
     }
+}
+
+fn capability(reply: &serde_json::Value) -> String {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("clock")
+        .as_secs();
+    let payload = json!({
+        "schema": "santi.runtime-capability.v1",
+        "iss": "santi.example",
+        "aud": "stim.reply",
+        "kid": "test-2026",
+        "soul": reply["soul"],
+        "strand": reply["strand"],
+        "turn": reply["turn"],
+        "call": reply["call"],
+        "effect": reply["effect"],
+        "iat": now,
+        "exp": now + 120,
+    });
+    let payload = URL_SAFE_NO_PAD.encode(serde_json::to_vec(&payload).expect("payload"));
+    let signed = format!("santi1.{payload}");
+    let signature = SigningKey::from_bytes(&[7; 32]).sign(signed.as_bytes());
+    format!("{signed}.{}", URL_SAFE_NO_PAD.encode(signature.to_bytes()))
 }
 
 fn framed(uri: &str, body: serde_json::Value, token: Option<&str>) -> Request<Body> {

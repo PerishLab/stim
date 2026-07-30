@@ -13,7 +13,6 @@ async fn main() -> Result<()> {
     let Cli {
         config,
         url,
-        token,
         command,
     } = Cli::parse();
     match command {
@@ -21,11 +20,11 @@ async fn main() -> Result<()> {
             let config = config::Config::load(&config)?;
             server::serve(config).await
         }
-        command => client(url, token, command).await,
+        command => client(url, command).await,
     }
 }
 
-async fn client(url: Option<String>, token: Option<String>, command: Command) -> Result<()> {
+async fn client(url: Option<String>, command: Command) -> Result<()> {
     let base = url.unwrap_or_else(|| "http://127.0.0.1:43308".to_string());
     let client = reqwest::Client::new();
     match command {
@@ -69,18 +68,22 @@ async fn client(url: Option<String>, token: Option<String>, command: Command) ->
         }
         Command::Reply { text, file, stdin } => {
             let content = text::read(text, file, stdin)?;
+            let soul = required("SANTI_SOUL_ID")?;
             let strand = required("SANTI_STRAND_ID")?;
             let turn = required("SANTI_TURN_ID")?;
-            let token = token
-                .filter(|value| !value.trim().is_empty())
-                .ok_or_else(|| anyhow::anyhow!("missing --reply-token / STIM_REPLY_TOKEN"))?;
+            let call = required("SANTI_TOOL_CALL_ID")?;
+            let effect = required("SANTI_EFFECT_ID")?;
+            let capability = required("SANTI_RUNTIME_CAPABILITY")?;
             http::print(
                 client
                     .post(format!("{}/api/v1/replies", trim(&base)))
-                    .bearer_auth(token)
+                    .bearer_auth(capability)
                     .json(&stim_core::Reply {
+                        soul,
                         strand,
                         turn,
+                        call,
+                        effect,
                         content,
                     })
                     .send()

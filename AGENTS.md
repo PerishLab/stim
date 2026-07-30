@@ -45,7 +45,8 @@ mechanize, and a wall written down is the enforcement until a check lands.
   Santi's database.
 - The label zone is `stim:`. Santi treats it as opaque; stim alone interprets the
   participant suffix.
-- The Santi downstream bearer and the stim reply bearer are distinct credentials.
+- The Santi downstream bearer and Santi-signed Stim reply capability are
+  distinct authorities.
 - Outbound delivery is cursor backfill first; SSE is only a wake-up. Explicit early
   replies win over the automatic completion for the same turn.
 

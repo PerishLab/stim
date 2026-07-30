@@ -63,3 +63,8 @@ paths = [
 ]
 
 [vocabulary]
+term = [
+  { name = "VerifyingKey", description = "Ed25519 defines the public-key verification type." },
+  { name = "maximum_ttl_seconds", description = "Reply capability policy exposes the lifetime in seconds." },
+  { name = "reply_keys", description = "Reply capability rotation binds a set of trusted public keys." },
+]

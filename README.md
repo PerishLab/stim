@@ -13,8 +13,9 @@ santi shell -> stim reply-only API
 ```
 
 Santi authorizes stim's opaque `stim:` label zone with one downstream bearer. The
-reply-only listener uses a second, unrelated bearer. Turn events are consumed by cursor
-backfill; SSE is only a wake-up, so reconnects do not lose replies.
+reply-only listener instead trusts short-lived Ed25519 capabilities signed for one
+concrete Santi shell effect. Turn events are consumed by cursor backfill; SSE is only a
+wake-up, so reconnects do not lose replies.
 
 ## Configure
 
@@ -37,17 +38,25 @@ Register only the SHA-256 digest of that token with Santi's operator-authenticat
 }
 ```
 
-Generate a distinct reply token and place only its digest in `[reply]`:
+Configure the exact Santi issuer and audience under `[reply]`, then register its
+public key by `kid`:
 
-```sh
-openssl rand -hex 32
-printf '%s' "$STIM_REPLY_TOKEN" | sha256sum
+```toml
+[reply]
+address = "0.0.0.0:43309"
+issuer = "santi.example.com"
+audience = "stim.reply"
+maximum_ttl_seconds = 300
+
+[reply_keys]
+key_2026 = "<unpadded base64url Ed25519 public key>"
 ```
 
 `listen.address` serves the main user API and defaults to loopback. Put it behind the
 user identity boundary before exposing it. `reply.address` is the cross-host listener;
-it exposes only `POST /api/v1/replies` and verifies the reply bearer by digest. Terminate
-TLS at the host edge; the service listeners themselves speak HTTP.
+it exposes only `POST /api/v1/replies` and verifies the capability signature, authority,
+lifetime, and request-bound origin. Terminate TLS at the host edge; the service listeners
+themselves speak HTTP.
 
 ## Run
 
@@ -69,19 +78,21 @@ stim poll --as operator --since 0
 ```
 
 An early reply runs on the Santi host during a turn. Santi already injects
-`SANTI_STRAND_ID` and `SANTI_TURN_ID`; configure the remote endpoint and the separate
-reply token as soul or strand turn-shell environment:
+the complete shell origin and a fresh `SANTI_RUNTIME_CAPABILITY`; only the remote
+endpoint remains a soul or strand declaration:
 
 ```sh
 santi env set soul soul_default STIM_BASE_URL https://stim.example.com:43309
-santi env set soul soul_default STIM_REPLY_TOKEN env://STIM_REPLY_TOKEN
 stim reply 'I am still working'
 ```
 
-The `env://STIM_REPLY_TOKEN` reference resolves from the Santi server process,
-keeping the raw reply token out of Santi's estate. It applies to synchronous
-turn shells; detached Santi jobs do not receive soul or strand environment
-declarations in v1.
+The Stim CLI copies soul, strand, turn, tool-call, and effect ids from Santi's
+reserved environment into the request and presents the capability. Stim requires
+every value to equal the signed claim. The private signing key never enters the
+shell or either estate, and detached Santi jobs receive no runtime capability.
+
+For rotation, add the new `kid` and public key before switching Santi. Keep the
+retiring key through `maximum_ttl_seconds`, then remove it.
 
 Repeating the same reply for the same turn is idempotent. A different payload for an
 already-used turn is rejected. If an explicit early reply exists, the automatic final

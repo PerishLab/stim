@@ -74,8 +74,11 @@ fn explicit() {
         )
         .expect("accept");
     let request = Reply {
+        soul: "soul_default".to_string(),
         strand: "strand_1".to_string(),
         turn: "turn_1".to_string(),
+        call: "call_1".to_string(),
+        effect: "effect_1".to_string(),
         content: "early".to_string(),
     };
     let first = store.reply(&request).expect("reply");
@@ -104,8 +107,11 @@ fn early() {
         .stage("operator", "soul_default", "request_1", "hello")
         .expect("stage");
     let request = Reply {
+        soul: "soul_default".to_string(),
         strand: "strand_1".to_string(),
         turn: "turn_1".to_string(),
+        call: "call_1".to_string(),
+        effect: "effect_1".to_string(),
         content: "early".to_string(),
     };
     let pending = store.reply(&request).expect("pending reply");

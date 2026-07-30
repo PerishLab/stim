@@ -11,13 +11,6 @@ pub struct Cli {
     pub config: String,
     #[arg(long = "base-url", env = "STIM_BASE_URL", global = true)]
     pub url: Option<String>,
-    #[arg(
-        long = "reply-token",
-        env = "STIM_REPLY_TOKEN",
-        global = true,
-        hide_env_values = true
-    )]
-    pub token: Option<String>,
     #[command(subcommand)]
     pub command: Command,
 }
