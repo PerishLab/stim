@@ -1148,9 +1148,9 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "plumb"
-version = "0.18.3"
+version = "0.18.4"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "60919aa5437d89bfb13f0db11fd8039d475c158850d9945b09beca187e60ce82"
+checksum = "8d03072955fe9724d02d70e1c7aa707cda43d3ad0338e49f716f08996b848c45"
 dependencies = [
  "clap",
  "pin-project-lite",
@@ -1161,9 +1161,9 @@ dependencies = [
 
 [[package]]
 name = "plumb-macro"
-version = "0.18.3"
+version = "0.18.4"
 source = "sparse+https://git.perish.top/api/packages/PerishLab/cargo/"
-checksum = "622c7bd6a4dfc0514565fb4ffb48548d9e3dc7415c0e38ee56e138a373ae3083"
+checksum = "100bcfe291ed196d6fcc2a12d1912582d911cc2a70e1e42250242ee9df408c0f"
 dependencies = [
  "proc-macro2",
  "quote",
