@@ -12,7 +12,7 @@ repository = "https://git.perish.top/PerishFire/stim"
 version = "0.1.0"
 
 [workspace.dependencies]
-plumb = { version = "0.2.1", registry = "perish" }
+plumb = { version = "0.18.3", registry = "perish" }
 anyhow = "1.0.102"
 axum = "0.8.8"
 base64 = "0.22.1"

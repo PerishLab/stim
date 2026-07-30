@@ -2,7 +2,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use plumb::config::{Cascade, Kind, Listen, Store};
+use plumb::config::Cascade;
+use serde::Deserialize;
 
 #[derive(Clone, Debug, Cascade)]
 pub struct Config {
@@ -30,6 +31,63 @@ impl Default for Config {
             reply: Reply::default(),
             reply_keys: BTreeMap::new(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Cascade, Deserialize, PartialEq, Eq)]
+#[cascade(section)]
+#[serde(default)]
+pub struct Listen {
+    pub host: String,
+    pub port: u16,
+    pub prefix: String,
+}
+
+impl Default for Listen {
+    fn default() -> Self {
+        Self {
+            host: "127.0.0.1".to_string(),
+            port: 3000,
+            prefix: String::new(),
+        }
+    }
+}
+
+impl Listen {
+    pub fn address(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Kind {
+    #[default]
+    Memory,
+    File,
+}
+
+impl plumb::config::Env for Kind {
+    fn read(value: &str) -> std::result::Result<Self, String> {
+        match value {
+            "memory" => Ok(Self::Memory),
+            "file" => Ok(Self::File),
+            _ => Err("neither memory nor file".to_string()),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Cascade, Deserialize, PartialEq, Eq)]
+#[cascade(section)]
+#[serde(default)]
+pub struct Store {
+    pub kind: Kind,
+    pub path: String,
+}
+
+impl Store {
+    pub fn rebased(&self, base: &Path) -> std::path::PathBuf {
+        plumb::config::rebase(Path::new(&self.path), base)
     }
 }
 
