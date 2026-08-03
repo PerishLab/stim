@@ -98,10 +98,11 @@ impl Write for Transaction<'_> {
         .map_err(|error| error.to_string())?;
         self.bind(held, &event.strand)?;
         if let Some(existing) = self.turned(&event.turn)? {
-            if existing.participant == held
-                && existing.strand.as_deref() == Some(event.strand.as_str())
-                && (existing.delivery == Some(Delivery::Explicit) || existing.content == event.text)
-            {
+            let origin = (existing.participant.as_str(), existing.strand.as_deref());
+            let expected = (held, Some(event.strand.as_str()));
+            let admitted = existing.delivery.as_ref() == Some(&Delivery::Explicit)
+                || existing.content == event.text;
+            if origin == expected && admitted {
                 return Ok(false);
             }
             return Err(format!(

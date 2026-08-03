@@ -39,4 +39,13 @@ jobs:
       - name: Guard
         run: |
           set -eu
-          deno run --allow-read "--allow-write=." --allow-env --allow-net "--allow-run=git,cargo,ectropy,plumb,deno,tea,sh,bash,runseal,rustc,node,pnpm,sidecar" --config .runseal/deno.json --lock .runseal/deno.lock --frozen=true .runseal/wrappers/guard.ts --fresh
+          cargo fmt --all --check
+          cargo clippy --locked --workspace --all-targets -- -D warnings
+          cargo check --locked --workspace --all-targets --release
+          cargo test --locked --workspace
+          pnpm biome ci .
+          pnpm -r exec tsc --noEmit
+          pnpm -r test
+          pnpm --filter @stim/web build
+          plumb doctor .
+          ectropy .

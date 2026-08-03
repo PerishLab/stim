@@ -95,8 +95,13 @@ impl Verifier {
         let prefix = parts.next().ok_or("capability prefix is missing")?;
         let payload = parts.next().ok_or("capability payload is missing")?;
         let signature = parts.next().ok_or("capability signature is missing")?;
-        if prefix != PREFIX || parts.next().is_some() || payload.is_empty() || signature.is_empty()
-        {
+        let envelope = (
+            prefix == PREFIX,
+            parts.next().is_none(),
+            !payload.is_empty(),
+            !signature.is_empty(),
+        );
+        if envelope != (true, true, true, true) {
             return Err("capability envelope is malformed");
         }
         let decoded = URL_SAFE_NO_PAD
@@ -140,12 +145,21 @@ impl Verifier {
         if now >= claims.exp {
             return Err("capability has expired");
         }
-        if claims.soul != request.soul
-            || claims.strand != request.strand
-            || claims.turn != request.turn
-            || claims.call != request.call
-            || claims.effect != request.effect
-        {
+        let origin = (
+            claims.soul.as_str(),
+            claims.strand.as_str(),
+            claims.turn.as_str(),
+            claims.call.as_str(),
+            claims.effect.as_str(),
+        );
+        let expected = (
+            request.soul.as_str(),
+            request.strand.as_str(),
+            request.turn.as_str(),
+            request.call.as_str(),
+            request.effect.as_str(),
+        );
+        if origin != expected {
             return Err("capability origin does not match the request");
         }
         Ok(())

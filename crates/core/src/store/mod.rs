@@ -165,11 +165,19 @@ impl Store {
         let tx = conn.transaction().map_err(|error| error.to_string())?;
         let held = tx.participant(&request.strand)?;
         if let Some(existing) = tx.turned(&request.turn)? {
-            if held.as_deref() == Some(existing.participant.as_str())
-                && existing.strand.as_deref() == Some(request.strand.as_str())
-                && existing.delivery == Some(Delivery::Explicit)
-                && existing.content == request.content
-            {
+            let reply = (
+                held.as_deref(),
+                existing.strand.as_deref(),
+                existing.delivery.as_ref(),
+                existing.content.as_str(),
+            );
+            let expected = (
+                Some(existing.participant.as_str()),
+                Some(request.strand.as_str()),
+                Some(&Delivery::Explicit),
+                request.content.as_str(),
+            );
+            if reply == expected {
                 return Ok(Replied {
                     message: Some(existing),
                     pending: false,
