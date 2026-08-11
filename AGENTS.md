@@ -52,7 +52,7 @@ mechanize, and a wall written down is the enforcement until a check lands.
 
 ## Operating
 
-- Never commit on `main`; use a topic branch and `runseal :land`.
+- Never commit on `main`; use a topic branch and `plumb land`.
 - Keep `.task/` ignored unless a long-running local task needs it.
 - Required checks: `cargo fmt --all --check`, `cargo clippy --locked --workspace
   --all-targets -- -D warnings`, `cargo test --locked --workspace`, and
