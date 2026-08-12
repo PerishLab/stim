@@ -6,10 +6,10 @@ targets = ["x86_64-unknown-linux-gnu"]
 
 [[document]]
 strategy = "agent"
-source = [{ path = ".", seal = "2d10cf31f839be2264061f9698126a52223fa5e8913a0203309f5953d6b1c90c" }]
+source = [{ path = ".", seal = "c5607500ce5d3d5544a18a39c6a7559831c0a6e364ccbf459f391e520d76fddc" }]
 target-seal = "8278b80623f5a6a67b55321faf640629065716bb2dc5c4b91498248a8e23b99f"
 
 [[document]]
 strategy = "design"
-source = [{ path = ".", seal = "2d10cf31f839be2264061f9698126a52223fa5e8913a0203309f5953d6b1c90c" }]
+source = [{ path = ".", seal = "c5607500ce5d3d5544a18a39c6a7559831c0a6e364ccbf459f391e520d76fddc" }]
 target-seal = "e4dfa29299b000bfc0c3211a0f0ed6d0757185aad2a10acc099eff72e18230b6"
