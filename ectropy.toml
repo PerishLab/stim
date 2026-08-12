@@ -13,7 +13,6 @@ include = [
   "apps/**/*.ts",
   "apps/**/*.tsx",
   "crates/**/*.rs",
-  "docs/**/*.md",
 ]
 exclude = [
   "**/dist/**",
@@ -27,7 +26,6 @@ roots = [
   "apps/*/tests",
   "crates/*/src",
   "crates/*/tests",
-  "docs",
 ]
 
 [limit]

@@ -3,3 +3,13 @@ product = "stim"
 authority = "https://releases.stim.perish.uk"
 binaries = ["stim"]
 targets = ["x86_64-unknown-linux-gnu"]
+
+[[document]]
+strategy = "agent"
+source = [{ path = ".", seal = "2d10cf31f839be2264061f9698126a52223fa5e8913a0203309f5953d6b1c90c" }]
+target-seal = "8278b80623f5a6a67b55321faf640629065716bb2dc5c4b91498248a8e23b99f"
+
+[[document]]
+strategy = "design"
+source = [{ path = ".", seal = "2d10cf31f839be2264061f9698126a52223fa5e8913a0203309f5953d6b1c90c" }]
+target-seal = "e4dfa29299b000bfc0c3211a0f0ed6d0757185aad2a10acc099eff72e18230b6"

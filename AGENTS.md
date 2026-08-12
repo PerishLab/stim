@@ -54,6 +54,13 @@ mechanize, and a wall written down is the enforcement until a check lands.
 
 - Never commit on `main`; use a topic branch and `plumb land`.
 - Keep `.task/` ignored unless a long-running local task needs it.
+- Copy `stim.example.toml` to ignored `stim.toml`, then provide the configured
+  Santi downstream token through its named environment seat.
+- `sidecar start --config sidecar.toml` owns the local service lifecycle;
+  `cargo run --locked -p stim -- service serve` runs the same service directly.
+- Register only the downstream token digest with Santi. Keep the reply signing
+  key out of both estates and rotate public keys by `kid` across the maximum
+  capability lifetime.
 - Required checks: `cargo fmt --all --check`, `cargo clippy --locked --workspace
   --all-targets -- -D warnings`, `cargo test --locked --workspace`, and
   errors-only `ectropy .`.
@@ -82,4 +89,4 @@ mechanize, and a wall written down is the enforcement until a check lands.
   stable capsule compiler before anything irreversible.
   `plumb doctor` does not check this: a changelog is owed by a release, not by a
   working tree. A release requiring nothing of anyone still writes MIGRATION.md
-  saying so. See `plumb/docs/changelog.md`.
+  saying so. Follow the release-local contract under `docs/CHANGELOG`.
