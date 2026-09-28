@@ -52,8 +52,8 @@ mechanize, and a wall written down is the enforcement until a check lands.
 
 ## Operating
 
-- Never commit on `main`; use a topic branch and `plumb land`.
-- Keep `.task/` ignored unless a long-running local task needs it.
+- Never commit on `main`; use an Issue-anchored topic worktree and land through
+  the repository guard.
 - Copy `stim.example.toml` to ignored `stim.toml`, then provide the configured
   Santi downstream token through its named environment seat.
 - `sidecar start --config sidecar.toml` owns the local service lifecycle;

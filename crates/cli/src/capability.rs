@@ -36,6 +36,23 @@ struct Claims {
     exp: u64,
 }
 
+#[derive(PartialEq, Eq)]
+struct Origin<'a> {
+    soul: &'a str,
+    strand: &'a str,
+    turn: &'a str,
+    call: &'a str,
+    effect: &'a str,
+}
+
+#[derive(PartialEq, Eq)]
+struct Envelope {
+    prefix: bool,
+    complete: bool,
+    payload: bool,
+    signature: bool,
+}
+
 impl Verifier {
     pub(crate) fn new(
         issuer: &str,
@@ -95,13 +112,19 @@ impl Verifier {
         let prefix = parts.next().ok_or("capability prefix is missing")?;
         let payload = parts.next().ok_or("capability payload is missing")?;
         let signature = parts.next().ok_or("capability signature is missing")?;
-        let envelope = (
-            prefix == PREFIX,
-            parts.next().is_none(),
-            !payload.is_empty(),
-            !signature.is_empty(),
-        );
-        if envelope != (true, true, true, true) {
+        let envelope = Envelope {
+            prefix: prefix == PREFIX,
+            complete: parts.next().is_none(),
+            payload: !payload.is_empty(),
+            signature: !signature.is_empty(),
+        };
+        let expected = Envelope {
+            prefix: true,
+            complete: true,
+            payload: true,
+            signature: true,
+        };
+        if envelope != expected {
             return Err("capability envelope is malformed");
         }
         let decoded = URL_SAFE_NO_PAD
@@ -145,20 +168,20 @@ impl Verifier {
         if now >= claims.exp {
             return Err("capability has expired");
         }
-        let origin = (
-            claims.soul.as_str(),
-            claims.strand.as_str(),
-            claims.turn.as_str(),
-            claims.call.as_str(),
-            claims.effect.as_str(),
-        );
-        let expected = (
-            request.soul.as_str(),
-            request.strand.as_str(),
-            request.turn.as_str(),
-            request.call.as_str(),
-            request.effect.as_str(),
-        );
+        let origin = Origin {
+            soul: &claims.soul,
+            strand: &claims.strand,
+            turn: &claims.turn,
+            call: &claims.call,
+            effect: &claims.effect,
+        };
+        let expected = Origin {
+            soul: &request.soul,
+            strand: &request.strand,
+            turn: &request.turn,
+            call: &request.call,
+            effect: &request.effect,
+        };
         if origin != expected {
             return Err("capability origin does not match the request");
         }
