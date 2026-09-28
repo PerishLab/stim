@@ -69,24 +69,8 @@ mechanize, and a wall written down is the enforcement until a check lands.
 
 ## Release
 
-- Stable from the canonical authority is the only moving install intent and the
-  only release admitted to the default install root and bin directory. The
-  generated root manager, stable pointer, and default seat are stable-owned
-  consensus surfaces.
-- Every non-stable channel requires an exact version plus explicit install and
-  bin paths disjoint from each other and from both stable defaults. Non-stable
-  has no pointer or activation.
-- `plumb.toml` is the product-owned release declaration. Stable Plumb owns
-  target builds, archives, managers and records, exact objects, public
-  readback, and manager smoke.
-- Publishing and stable activation use separate commands and credentials. Exact
-  seals are create-only; stable activation compare-and-swaps the sole moving
-  pointer after updating the generated root manager.
-- Stable is rebuilt from the same commit as one exact candidate and embeds its
-  complete seal plus digest as proof.
-- A stable release refuses to publish without
-  `docs/CHANGELOG/v<version>/{en,zh}/{INDEX.md,MIGRATION.md}`, enforced by the
-  stable capsule compiler before anything irreversible.
-  `plumb doctor` does not check this: a changelog is owed by a release, not by a
-  working tree. A release requiring nothing of anyone still writes MIGRATION.md
-  saying so. Follow the release-local contract under `docs/CHANGELOG`.
+- `plumb.toml` is the product-owned release declaration. Releases follow
+  Plumb's lifecycle (`plumb release --help`) and are distributed by wharf; the
+  repository holds no release credential.
+- A stable's changelog goes to the Depot; this repository carries no release
+  notes of its own.
