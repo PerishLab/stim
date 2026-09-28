@@ -22,6 +22,7 @@ exclude = [
 
 [module]
 roots = [
+  "apps/*",
   "apps/*/src",
   "apps/*/tests",
   "crates/*/src",
@@ -34,7 +35,7 @@ fanout = 10
 file = 300
 markup = 8
 param = 4
-path = 4
+path = 3
 
 [comment]
 allow = false
@@ -47,6 +48,7 @@ syntax = "test"
 paths = [
   "apps/*/tests/**/*.test.ts",
   "apps/*/tests/**/*.test.tsx",
+  "crates/*/src/**/*.rs",
   "crates/*/tests/**/*.rs",
 ]
 

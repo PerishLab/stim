@@ -17,6 +17,14 @@ pub struct Store {
     conn: Arc<Mutex<Connection>>,
 }
 
+#[derive(PartialEq, Eq)]
+struct Identity<'a> {
+    participant: Option<&'a str>,
+    strand: Option<&'a str>,
+    delivery: Option<&'a Delivery>,
+    content: &'a str,
+}
+
 impl Store {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, String> {
         if let Some(parent) = path.as_ref().parent() {
@@ -165,18 +173,18 @@ impl Store {
         let tx = conn.transaction().map_err(|error| error.to_string())?;
         let held = tx.participant(&request.strand)?;
         if let Some(existing) = tx.turned(&request.turn)? {
-            let reply = (
-                held.as_deref(),
-                existing.strand.as_deref(),
-                existing.delivery.as_ref(),
-                existing.content.as_str(),
-            );
-            let expected = (
-                Some(existing.participant.as_str()),
-                Some(request.strand.as_str()),
-                Some(&Delivery::Explicit),
-                request.content.as_str(),
-            );
+            let reply = Identity {
+                participant: held.as_deref(),
+                strand: existing.strand.as_deref(),
+                delivery: existing.delivery.as_ref(),
+                content: &existing.content,
+            };
+            let expected = Identity {
+                participant: Some(&existing.participant),
+                strand: Some(&request.strand),
+                delivery: Some(&Delivery::Explicit),
+                content: &request.content,
+            };
             if reply == expected {
                 return Ok(Replied {
                     message: Some(existing),

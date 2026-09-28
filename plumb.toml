@@ -1,3 +1,39 @@
+[layout]
+
+[[layout.seat]]
+path = "crates/*"
+anchor = ["Cargo.toml"]
+note = "The Stim semantic core and its CLI, HTTP, and service boundary."
+
+[[layout.seat]]
+path = "apps/*"
+anchor = ["package.json"]
+note = "Display panes over the Stim API."
+
+[[layout.seat]]
+path = ".cargo"
+note = "Cargo registry configuration."
+
+[[layout.seat]]
+path = ".runseal"
+note = "Committed inert Runseal resources."
+
+[[layout.file]]
+name = ["Cargo.toml", "Cargo.lock"]
+note = "Rust workspace anchors."
+
+[[layout.file]]
+name = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "biome.json"]
+note = "The pnpm workspace anchors."
+
+[[layout.file]]
+name = ["DESIGN.md"]
+note = "The message identity, persistence, delivery, and authority design."
+
+[[layout.file]]
+name = ["stim.example.toml"]
+note = "Tracked local runtime configuration template; live stim.toml stays ignored."
+
 [release]
 product = "stim"
 authority = "https://releases.stim.perish.uk"
