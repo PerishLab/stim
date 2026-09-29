@@ -1,6 +1,8 @@
 minimumReleaseAgeExclude:
-  - "@perish/react-components"
-  - "@jsr/perish__vite-plugin-design"
+  - "@perishlab/bone"
+  - "@perishlab/design"
+  - "@perishlab/sign"
+  - "@perishlab/token"
 
 packages:
   - apps/*
@@ -12,13 +14,11 @@ allowBuilds:
 
 catalog:
   "@biomejs/biome": 2.5.3
+  "@sveltejs/vite-plugin-svelte": 7.3.1
   "@types/node": 24.13.3
-  "@types/react": 19.2.17
-  "@types/react-dom": 19.2.3
-  "@vitejs/plugin-react": 6.0.3
-  react: 19.2.7
-  react-dom: 19.2.7
-  sass: 1.101.0
-  typescript: 7.0.2
-  vite: 8.1.4
-  vitest: 4.1.10
+  sass: 1.105.0
+  svelte: 5.57.1
+  svelte-check: 4.7.6
+  typescript: 6.0.3
+  vite: 8.3.1
+  vitest: 5.0.2
