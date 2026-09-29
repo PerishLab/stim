@@ -23,7 +23,7 @@ name = ["Cargo.toml", "Cargo.lock"]
 note = "Rust workspace anchors."
 
 [[layout.file]]
-name = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "biome.json"]
+name = ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "biome.json", ".npmrc"]
 note = "The pnpm workspace anchors."
 
 [[layout.file]]
