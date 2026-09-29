@@ -2,32 +2,30 @@
 allow = ["path"]
 note = "vite and vitest require root-level config files; path law anchors to src and tests"
 paths = [
-  "apps/web/vite.config.ts",
-  "apps/web/vitest.config.ts",
+    "apps/web/vite.config.ts",
+    "apps/web/vitest.config.ts",
 ]
 
-[scan]
-include = [
-  "apps/**/*.css",
-  "apps/**/*.scss",
-  "apps/**/*.ts",
-  "apps/**/*.tsx",
-  "crates/**/*.rs",
-]
-exclude = [
-  "**/dist/**",
-  "**/node_modules/**",
-  "**/target/**",
-]
+[comment]
+allow = false
 
-[module]
-roots = [
-  "apps/*",
-  "apps/*/src",
-  "apps/*/tests",
-  "crates/*/src",
-  "crates/*/tests",
+[[grant]]
+paths = [
+    "apps/*/tests/**/*.test.ts",
+    "crates/*/src/**/*.rs",
+    "crates/*/tests/**/*.rs",
 ]
+syntax = "test"
+
+[[grant]]
+paths = [
+    "apps/*/tests/**/*.test.ts",
+    "apps/*/tests/**/*.test.tsx",
+    "crates/*/tests/**/*.rs",
+    "crates/cli/src/config.rs",
+    "crates/cli/src/main.rs",
+]
+syntax = "environment"
 
 [limit]
 block = 4
@@ -37,34 +35,41 @@ markup = 8
 param = 4
 path = 3
 
-[comment]
-allow = false
+[module]
+roots = [
+    "apps/*",
+    "apps/*/src",
+    "apps/*/tests",
+    "crates/*/src",
+    "crates/*/tests",
+]
+
+[scan]
+exclude = [
+    "**/.svelte-kit/**",
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/target/**",
+]
+include = [
+    "apps/**/*.css",
+    "apps/**/*.scss",
+    "apps/**/*.svelte",
+    "apps/**/*.ts",
+    "crates/**/*.rs",
+]
+
+[[vocabulary.term]]
+description = "Ed25519 defines the public-key verification type."
+name = "VerifyingKey"
+
+[[vocabulary.term]]
+description = "Reply capability policy exposes the lifetime in seconds."
+name = "maximum_ttl_seconds"
+
+[[vocabulary.term]]
+description = "Reply capability rotation binds a set of trusted public keys."
+name = "reply_keys"
 
 [word]
 single = true
-
-[[grant]]
-syntax = "test"
-paths = [
-  "apps/*/tests/**/*.test.ts",
-  "apps/*/tests/**/*.test.tsx",
-  "crates/*/src/**/*.rs",
-  "crates/*/tests/**/*.rs",
-]
-
-[[grant]]
-syntax = "environment"
-paths = [
-  "apps/*/tests/**/*.test.ts",
-  "apps/*/tests/**/*.test.tsx",
-  "crates/cli/src/config.rs",
-  "crates/cli/src/main.rs",
-  "crates/*/tests/**/*.rs",
-]
-
-[vocabulary]
-term = [
-  { name = "VerifyingKey", description = "Ed25519 defines the public-key verification type." },
-  { name = "maximum_ttl_seconds", description = "Reply capability policy exposes the lifetime in seconds." },
-  { name = "reply_keys", description = "Reply capability rotation binds a set of trusted public keys." },
-]

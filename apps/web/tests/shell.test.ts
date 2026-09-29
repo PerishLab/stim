@@ -1,0 +1,10 @@
+import { render } from "svelte/server";
+import { expect, test } from "vitest";
+import Home from "../src/views/index.svelte";
+
+test("home renders the pane before the api answers", () => {
+	const markup = render(Home).body;
+	expect(markup).toContain("stim");
+	expect(markup).toContain('class="frame');
+	expect(markup).toContain("The api has not answered yet.");
+});

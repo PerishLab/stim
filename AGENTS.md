@@ -28,9 +28,10 @@ web | cli | winui | swiftui | ...        display panes, which only carry interac
   `EventSource`, or an event listener of its own. Everything a pane can do
   arrives through its hooks layer, which is why auditing hooks is the same as
   auditing the whole interaction surface.
-- **Anything expressible only in React is a shape error.** Capability is defined
-  once, below the panes; a React binding is a binding, never a definition. WinUI
-  and SwiftUI panes are a matter of time, and they will consume the same api.
+- **Anything expressible only in one UI framework is a shape error.**
+  Capability is defined once, below the panes; the web pane's Svelte binding on
+  `@perishlab/design` is a binding, never a definition. WinUI and SwiftUI panes
+  are a matter of time, and they will consume the same api.
 
 These are prose for now, deliberately: the shape is not settled enough to
 mechanize, and a wall written down is the enforcement until a check lands.
