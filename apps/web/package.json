@@ -2,6 +2,9 @@
 	"name": "@stim/web",
 	"private": true,
 	"type": "module",
+	"exports": {
+		"./views/index.svelte": "./src/views/index.svelte"
+	},
 	"scripts": {
 		"dev": "vite",
 		"build": "vite build",
