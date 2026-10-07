@@ -1,5 +1,10 @@
 # Agent guide
 
+Read the canonical [PerishLab delivery governance](https://github.com/PerishLab/.github/blob/main/GOVERNANCE.md)
+at work start and again before delivery or Issue closure. That document owns
+organization-wide Issue, pull-request and acceptance policy; this file keeps
+repository-specific constraints without copying that policy.
+
 `stim` is a standalone message product downstream of santi. It owns message identity,
 participants, persistence, delivery projection, and its own HTTP/CLI boundary. Santi
 owns souls, strands, turns, and provider execution.
