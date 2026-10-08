@@ -13,7 +13,7 @@
 		"typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings"
 	},
 	"dependencies": {
-		"@perishlab/design": "0.3.4",
+		"@perishlab/design": "0",
 		"svelte": "catalog:"
 	},
 	"devDependencies": {
