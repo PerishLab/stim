@@ -45,8 +45,8 @@ importers:
   apps/web:
     dependencies:
       '@perishlab/design':
-        specifier: 0.3.4
-        version: 0.3.4(sass@1.105.0)(svelte@5.57.1)
+        specifier: '0'
+        version: 0.3.14(sass@1.105.0)(svelte@5.57.1)
       svelte:
         specifier: 'catalog:'
         version: 5.57.1
@@ -236,16 +236,16 @@ packages:
     resolution: {integrity: sha512-7FNeNl8NCE7aINx7WXiKQrPYZWC/hvrTsmk6zmxbI7LTXE7hVek/n8AfVgpe2y82zl3w0HvCHN0bVKMBoJcC0w==}
     engines: {node: '>= 10.0.0'}
 
-  '@perishlab/bone@0.3.4':
-    resolution: {integrity: sha512-dzD471UplCkFf4OT6e7GmbhCrCRetC7rtWx9dR61PG6rmemEpfL+htJO8UlLoGdV8uZ2nr8qOB+nR2/jBoVZWA==, tarball: https://npm.pkg.github.com/download/@perishlab/bone/0.3.4/d372039d86a9474e49348eed2d4078fbe7eb477e}
+  '@perishlab/bone@0.3.14':
+    resolution: {integrity: sha512-c1HNOw8jJVp1VckEDEiewYPNrW0SiiuPWKbClkEZvt3WPxjOL9ALTI87Pz50A5aMb9B52LR4mxtxg27Ix7TjLQ==, tarball: https://npm.pkg.github.com/download/@perishlab/bone/0.3.14/7fe6ceddeafadf7354d87806c0f6bdbcfbac1021}
     peerDependencies:
       svelte: '>=5.56'
 
-  '@perishlab/crest@0.1.0':
-    resolution: {integrity: sha512-f9PC6mhO7FOvpRghjcwXA9/GbhbJeeoAYcX0e5u9asBiNsKo+hXdLL13g/hWLPlnZwI36Zux/0jj7ssXv5fkzA==, tarball: https://npm.pkg.github.com/download/@perishlab/crest/0.1.0/858bd85f43d28f2f757b87acbace907b6f5b399f}
+  '@perishlab/crest@0.2.0':
+    resolution: {integrity: sha512-+k287X0W9PLeEkTzt3zMXmftD2HJ7wAydqlyjszAg3oA1AjBF/CarIdNWzpgZ3r2HbaRK80QiLb30bmTkPb7OQ==, tarball: https://npm.pkg.github.com/download/@perishlab/crest/0.2.0/9904c853a64107dfc54aae25274a3f24e1cac04b}
 
-  '@perishlab/design@0.3.4':
-    resolution: {integrity: sha512-IGphRRPUUPFgVT2n6nrWa42zhyoa0hcrWtbM8+5AiDvYAmdE3ySK4l11aECYSJ4OmeqN+PCihbe7aYqoGx/uxA==, tarball: https://npm.pkg.github.com/download/@perishlab/design/0.3.4/55311ec9645dc624472dd3c0fecf4746b1b53207}
+  '@perishlab/design@0.3.14':
+    resolution: {integrity: sha512-3z0ultJTfECUU26rtMxSMG+nbHQyo7lLOGOjS6RtleIXo2IOlUcTwMPjH4pGLr5JYtaYWWMXMQTB3cy2mDJYNA==, tarball: https://npm.pkg.github.com/download/@perishlab/design/0.3.14/13cafeda8bddca4f0a1ccd6e89ef8ee5a9daf432}
     peerDependencies:
       sass: '>=1.101'
       svelte: '>=5.56'
@@ -253,11 +253,11 @@ packages:
   '@perishlab/sidecar@0.9.0':
     resolution: {integrity: sha512-4SXCPOx59a3XWJDC+EkXQn9oez6B1O0LiDRE0ApjzI8c5V1uO2Va08+z+XYWeAQbO7v5/98T2NB6zkJYgvnJWQ==, tarball: https://npm.pkg.github.com/download/@perishlab/sidecar/0.9.0/6d017f46f7a864633415c3112ae1faba074fafba}
 
-  '@perishlab/sign@0.3.4':
-    resolution: {integrity: sha512-EglxBhLdizFI+XlGi92GHSScOuBetbz0xfNxXRvHVSZ459R32vtELg17qyY8DSeBnHmgJJAtIUJWKX+VXTo80A==, tarball: https://npm.pkg.github.com/download/@perishlab/sign/0.3.4/6998fed00cf088d50e6e60806ed73a718dc06aef}
+  '@perishlab/sign@0.3.14':
+    resolution: {integrity: sha512-Yg6QcRWWDKwmbzAxNUO1bKxZ6oKlC7L4jpDQUq3wHA+JU0gytycP0WdpXc5+JBGmDtnBbIfaiz+0UWOpxeJPrA==, tarball: https://npm.pkg.github.com/download/@perishlab/sign/0.3.14/cd59fe88ca887b4b9ee2e1ac8bc778a2aa3c4a21}
 
-  '@perishlab/token@0.3.4':
-    resolution: {integrity: sha512-kl9a5b2/E0EuOBPVSVBsNqO85F7e1Gfggrs7qJaax8MAtmDSlCR1X7U4knEkZBBH5mqBKqqngfPM8RXFPYP5OQ==, tarball: https://npm.pkg.github.com/download/@perishlab/token/0.3.4/8c64cf01ebcde4bd97abbdea93249478476b57b7}
+  '@perishlab/token@0.3.14':
+    resolution: {integrity: sha512-7pfILFwBceqhsQHh14S66mtNOPMvSY4mJZY9k/3CkRBf90xVnuUmfGtPeURwXXbLX/eanHPAoiVszfnJjESauw==, tarball: https://npm.pkg.github.com/download/@perishlab/token/0.3.14/9ff9dac8ec9a75d5cbabf23f8ab5b7e2d20fce24}
     peerDependencies:
       sass: '>=1.101'
 
@@ -887,27 +887,27 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.6.0
     optional: true
 
-  '@perishlab/bone@0.3.4(svelte@5.57.1)':
+  '@perishlab/bone@0.3.14(svelte@5.57.1)':
     dependencies:
       svelte: 5.57.1
 
-  '@perishlab/crest@0.1.0': {}
+  '@perishlab/crest@0.2.0': {}
 
-  '@perishlab/design@0.3.4(sass@1.105.0)(svelte@5.57.1)':
+  '@perishlab/design@0.3.14(sass@1.105.0)(svelte@5.57.1)':
     dependencies:
-      '@perishlab/bone': 0.3.4(svelte@5.57.1)
-      '@perishlab/crest': 0.1.0
+      '@perishlab/bone': 0.3.14(svelte@5.57.1)
+      '@perishlab/crest': 0.2.0
       '@perishlab/sidecar': 0.9.0
-      '@perishlab/sign': 0.3.4
-      '@perishlab/token': 0.3.4(sass@1.105.0)
+      '@perishlab/sign': 0.3.14
+      '@perishlab/token': 0.3.14(sass@1.105.0)
       sass: 1.105.0
       svelte: 5.57.1
 
   '@perishlab/sidecar@0.9.0': {}
 
-  '@perishlab/sign@0.3.4': {}
+  '@perishlab/sign@0.3.14': {}
 
-  '@perishlab/token@0.3.4(sass@1.105.0)':
+  '@perishlab/token@0.3.14(sass@1.105.0)':
     dependencies:
       sass: 1.105.0
 
