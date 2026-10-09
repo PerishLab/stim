@@ -10,11 +10,13 @@ use stim::{config, server};
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    plumb::identity!("STIM").map_err(anyhow::Error::msg)?;
     let Cli {
         config,
         url,
         command,
     } = Cli::parse();
+    plumb::identity::ready().map_err(anyhow::Error::msg)?;
     match command {
         Command::Service(Service::Serve) => {
             let config = config::Config::load(&config)?;
