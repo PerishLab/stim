@@ -1,5 +1,6 @@
 mod cli;
 mod http;
+mod observation;
 mod text;
 
 use anyhow::{Context, Result};
@@ -22,11 +23,16 @@ async fn main() -> Result<()> {
             let config = config::Config::load(&config)?;
             server::serve(config).await
         }
-        command => client(url, command).await,
+        command => observed(url, command).await,
     }
 }
 
-async fn client(url: Option<String>, command: Command) -> Result<()> {
+#[locus::trace(with = observer.map(observation::Run::view))]
+async fn client(
+    url: Option<String>,
+    command: Command,
+    observer: Option<&observation::Run>,
+) -> Result<()> {
     let base = url.unwrap_or_else(|| "http://127.0.0.1:43308".to_string());
     let client = reqwest::Client::new();
     match command {
@@ -107,4 +113,22 @@ fn required(name: &str) -> Result<String> {
         .ok()
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| anyhow::anyhow!("missing {name}"))
+}
+
+fn name(command: &Command) -> &'static str {
+    match command {
+        Command::Send { .. } => "send",
+        Command::Poll { .. } => "poll",
+        Command::Reply { .. } => "reply",
+        Command::Service(_) => unreachable!(),
+    }
+}
+
+async fn observed(url: Option<String>, command: Command) -> Result<()> {
+    let observer = observation::Run::start(name(&command));
+    let result = client(url, command, observer.as_ref()).await;
+    if let Some(observer) = observer {
+        observer.finish(if result.is_ok() { 0 } else { 1 });
+    }
+    result
 }

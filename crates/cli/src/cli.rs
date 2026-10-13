@@ -4,7 +4,8 @@ use clap::{Parser, Subcommand};
 #[command(
     name = "stim",
     version = plumb::version!("STIM"),
-    about = "Standalone message downstream for santi"
+    about = "Standalone message downstream for santi",
+    after_help = "Finite CLI observation is off by default. Set [locus] enabled = true in config.toml under ~/.stim on Unix or LOCALAPPDATA/stim on Windows, separate from STIM_CONFIG and STIM_BASE_URL. Buffer is state/locus; endpoint overrides LOCUS_API, then http://127.0.0.1:43308. Observation preserves requests, results and exit status. service serve does not initialize observation."
 )]
 pub struct Cli {
     #[arg(long, env = "STIM_CONFIG", default_value = "stim.toml")]

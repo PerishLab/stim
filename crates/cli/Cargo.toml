@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+locus.workspace = true
 plumb = { workspace = true }
 anyhow.workspace = true
 axum.workspace = true
