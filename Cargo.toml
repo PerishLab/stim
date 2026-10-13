@@ -12,6 +12,7 @@ repository = "https://github.com/PerishLab/stim"
 version = "0.1.0"
 
 [workspace.dependencies]
+locus = { version = "0", registry = "perish" }
 plumb = { version = "0", registry = "perish" }
 anyhow = "1.0.102"
 axum = "0.8.8"
