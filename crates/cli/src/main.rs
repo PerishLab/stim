@@ -33,7 +33,7 @@ async fn client(
     command: Command,
     observer: Option<&observation::Run>,
 ) -> Result<()> {
-    let base = url.unwrap_or_else(|| "http://127.0.0.1:43308".to_string());
+    let base = url.unwrap_or_else(|| "http://127.0.0.1:43311".to_string());
     let client = reqwest::Client::new();
     match command {
         Command::Send {

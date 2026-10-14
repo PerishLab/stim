@@ -5,7 +5,7 @@ use anyhow::{Context, Result};
 use plumb::config::Cascade;
 use serde::Deserialize;
 
-#[derive(Clone, Debug, Cascade)]
+#[derive(Clone, Debug, Default, Cascade)]
 pub struct Config {
     #[cascade(section)]
     pub listen: Listen,
@@ -16,22 +16,6 @@ pub struct Config {
     #[cascade(section)]
     pub reply: Reply,
     pub reply_keys: BTreeMap<String, String>,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Config {
-            listen: Listen {
-                host: "127.0.0.1".to_string(),
-                port: 43308,
-                prefix: String::new(),
-            },
-            store: Store::default(),
-            santi: Santi::default(),
-            reply: Reply::default(),
-            reply_keys: BTreeMap::new(),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Cascade, Deserialize, PartialEq, Eq)]
@@ -47,7 +31,7 @@ impl Default for Listen {
     fn default() -> Self {
         Self {
             host: "127.0.0.1".to_string(),
-            port: 3000,
+            port: 43311,
             prefix: String::new(),
         }
     }

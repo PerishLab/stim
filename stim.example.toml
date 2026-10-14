@@ -1,5 +1,6 @@
 [listen]
-address = "127.0.0.1:43308"
+host = "127.0.0.1"
+port = 43311
 
 [store]
 kind = "file"
