@@ -1064,9 +1064,9 @@ checksum = "92daf443525c4cce67b150400bc2316076100ce0b3686209eb8cf3c31612e6f0"
 
 [[package]]
 name = "locus"
-version = "0.8.0"
+version = "0.9.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "78e1d2abd8dd7aedb88a81af37be2007d1f2f3db5db9fcc45a9e0472a2e9938a"
+checksum = "a2ab8aa52e8f53fc9e69079c97850b0fb6c4c43c7e30f1aa78ee8a439fb6d736"
 dependencies = [
  "getrandom 0.3.4",
  "locus-macro",
@@ -1076,9 +1076,9 @@ dependencies = [
 
 [[package]]
 name = "locus-macro"
-version = "0.8.0"
+version = "0.9.0"
 source = "sparse+https://cargo.perish.uk/"
-checksum = "0855db4132cf3a0ad39ae14c5a608ef3ac6f951c5a5765e1e2c0fd448f29ab47"
+checksum = "20e48f6bf77a9ce1044ce242a1467b170c0bca77c870d98fd3f235ed5b00d431"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1792,7 +1792,7 @@ checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
 name = "stim"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "axum",
@@ -1817,7 +1817,7 @@ dependencies = [
 
 [[package]]
 name = "stim-core"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "chrono",
  "rusqlite",
