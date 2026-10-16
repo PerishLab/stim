@@ -27,12 +27,8 @@ async fn main() -> Result<()> {
     }
 }
 
-#[locus::trace(with = observer.map(observation::Run::view))]
-async fn client(
-    url: Option<String>,
-    command: Command,
-    observer: Option<&observation::Run>,
-) -> Result<()> {
+#[locus::trace(with = plumb::observation::view())]
+async fn client(url: Option<String>, command: Command) -> Result<()> {
     let base = url.unwrap_or_else(|| "http://127.0.0.1:43311".to_string());
     let client = reqwest::Client::new();
     match command {
@@ -125,8 +121,8 @@ fn name(command: &Command) -> &'static str {
 }
 
 async fn observed(url: Option<String>, command: Command) -> Result<()> {
-    let observer = observation::Run::start(name(&command));
-    let result = client(url, command, observer.as_ref()).await;
+    let observer = observation::start(name(&command));
+    let result = client(url, command).await;
     if let Some(observer) = observer {
         observer.finish(if result.is_ok() { 0 } else { 1 });
     }
