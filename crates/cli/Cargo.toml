@@ -7,7 +7,7 @@ repository.workspace = true
 
 [dependencies]
 locus.workspace = true
-plumb = { workspace = true }
+plumb = { workspace = true, features = ["observation"] }
 anyhow.workspace = true
 axum.workspace = true
 base64.workspace = true

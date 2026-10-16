@@ -64,6 +64,11 @@ fn buffered() {
     for name in ["send", "poll", "reply"] {
         assert!(atoms.iter().any(|a| a["context"]["stim.command"] == name));
     }
+    assert!(
+        atoms
+            .iter()
+            .all(|a| a["context"].get("stim.fault").is_none())
+    );
     let text = serde_json::to_string(&atoms).unwrap();
     for private in [
         "private-message",

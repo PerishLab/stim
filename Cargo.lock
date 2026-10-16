@@ -1198,6 +1198,7 @@ checksum = "c2da85326772dd42b80701b17cc586dd634566ac234066451c7ac3ee52784d0b"
 dependencies = [
  "base64",
  "clap",
+ "locus",
  "object",
  "pin-project-lite",
  "plumb-macro",
