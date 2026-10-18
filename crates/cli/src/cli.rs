@@ -26,8 +26,8 @@ pub enum Command {
         participant: String,
         #[arg(long, env = "STIM_SOUL_ID")]
         soul: Option<String>,
-        #[arg(long)]
-        request_id: Option<String>,
+        #[arg(long = "request-id", value_name = "REQUEST_ID")]
+        request: Option<String>,
     },
     Poll {
         #[arg(long = "as", env = "STIM_PARTICIPANT", default_value = "operator")]
