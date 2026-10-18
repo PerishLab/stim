@@ -36,13 +36,13 @@ async fn client(url: Option<String>, command: Command) -> Result<()> {
             text,
             participant,
             soul,
-            request_id,
+            request,
         } => {
             let request = stim_core::Post {
                 participant,
                 soul,
                 content: text,
-                request: request_id
+                request: request
                     .unwrap_or_else(|| format!("req_{}", uuid::Uuid::new_v4().simple())),
             };
             http::print(
