@@ -11,7 +11,7 @@ use axum::{Json, Router};
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use ed25519_dalek::{Signer as _, SigningKey};
 use serde_json::json;
-use stim::config::{Config, Kind, Listen, Reply, Santi, Store as StoreConfig};
+use stim::config::{Config, Kind, Listen, Reply, Santi};
 use stim_core::{Ingest, Store};
 use tower::ServiceExt as _;
 
@@ -191,7 +191,7 @@ fn config(base: String, path: std::path::PathBuf) -> Config {
             port: 0,
             prefix: String::new(),
         },
-        store: StoreConfig {
+        store: stim::config::Store {
             kind: Kind::File,
             path: path.to_string_lossy().into_owned(),
         },

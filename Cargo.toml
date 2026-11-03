@@ -12,6 +12,7 @@ repository = "https://github.com/PerishLab/stim"
 version = "0.0.0"
 
 [workspace.dependencies]
+radicula-config = { version = "0", registry = "perish" }
 locus = { version = "0", registry = "perish" }
 plumb = { version = "0", registry = "perish" }
 anyhow = "1.0.102"
