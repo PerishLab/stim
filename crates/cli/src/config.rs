@@ -2,10 +2,11 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use plumb::config::Cascade;
+use radicula_config::{Cascade, Env};
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Default, Cascade)]
+#[plumb::config::prefix]
 pub struct Config {
     #[cascade(section)]
     pub listen: Listen,
@@ -51,7 +52,7 @@ pub enum Kind {
     File,
 }
 
-impl plumb::config::Env for Kind {
+impl Env for Kind {
     fn read(value: &str) -> std::result::Result<Self, String> {
         match value {
             "memory" => Ok(Self::Memory),
@@ -106,7 +107,7 @@ impl Default for Reply {
 impl Config {
     pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let path = path.as_ref();
-        let mut config = Self::resolve(Some(path))
+        let mut config = Self::resolve(Some(path), &Self::prefix(), &plumb::config::value)
             .with_context(|| format!("resolve config {}", path.display()))?;
         if config.store.kind != Kind::File {
             anyhow::bail!("store.kind must be file");
