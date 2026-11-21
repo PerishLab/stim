@@ -5,7 +5,7 @@ use clap::{Parser, Subcommand};
     name = "stim",
     version = plumb::version!("STIM"),
     about = "Standalone message downstream for santi",
-    after_help = "Finite CLI observation is off by default. Set [locus] enabled = true in config.toml under ~/.stim on Unix or LOCALAPPDATA/stim on Windows, separate from STIM_CONFIG and STIM_BASE_URL. Buffer is state/locus; endpoint overrides LOCUS_API, then http://127.0.0.1:43308. Observation preserves requests, results and exit status. service serve does not initialize observation."
+    after_help = "Finite CLI observation is off by default. Set [locus] enabled = true in config.toml under ~/.stim on Unix or LOCALAPPDATA/stim on Windows, separate from STIM_CONFIG and STIM_BASE_URL. The default HTTP receiver at http://127.0.0.1:43308 uses state/locus under that home. For HTTPS, set endpoint and an absolute writer key_file in [locus]. The recovery queue is state/locus.https/stim under the same home. On Unix, sender can name an absolute Locus executable. With all three unset, LOCUS_API, LOCUS_API_KEY_FILE and LOCUS_SENDER supply the settings. Observation preserves requests, results and exit status. service serve does not initialize observation."
 )]
 pub struct Cli {
     #[arg(long, env = "STIM_CONFIG", default_value = "stim.toml")]
