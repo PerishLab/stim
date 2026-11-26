@@ -54,3 +54,40 @@ target-seal = "e4dfa29299b000bfc0c3211a0f0ed6d0757185aad2a10acc099eff72e18230b6"
 
 [brand]
 mode = "views"
+
+[[ectropy.boundary]]
+allow = ["path"]
+note = "vite and vitest require root-level config files; path law anchors to src and tests"
+paths = [
+    "apps/web/vite.config.ts",
+    "apps/web/vitest.config.ts",
+]
+
+[[ectropy.grant]]
+paths = [
+    "apps/*/tests/**/*.test.tsx",
+    "crates/cli/src/config.rs",
+    "crates/cli/src/main.rs",
+]
+syntax = "environment"
+
+[sidecar.project]
+name = "stim"
+namespace = "dev"
+root = "."
+
+[[sidecar.sidecars]]
+name = "service"
+command = "cargo"
+args = ["run", "--locked", "-p", "stim", "--", "service", "serve"]
+cwd = "."
+mode = "dev"
+health_url = "http://127.0.0.1:43311/health"
+
+[[sidecar.sidecars]]
+name = "web"
+command = "pnpm"
+args = ["--filter", "@stim/web", "dev"]
+cwd = "."
+mode = "dev"
+health_url = "http://127.0.0.1:5173/"

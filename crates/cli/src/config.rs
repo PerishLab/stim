@@ -16,7 +16,8 @@ pub struct Config {
     pub santi: Santi,
     #[cascade(section)]
     pub reply: Reply,
-    pub reply_keys: BTreeMap<String, String>,
+    #[cascade(name = "reply_keys")]
+    pub keys: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Debug, Cascade, Deserialize, PartialEq, Eq)]
@@ -90,7 +91,8 @@ pub struct Reply {
     pub address: String,
     pub issuer: String,
     pub audience: String,
-    pub maximum_ttl_seconds: u64,
+    #[cascade(name = "maximum_ttl_seconds")]
+    pub ttl: u64,
 }
 
 impl Default for Reply {
@@ -99,7 +101,7 @@ impl Default for Reply {
             address: String::new(),
             issuer: String::new(),
             audience: String::new(),
-            maximum_ttl_seconds: 300,
+            ttl: 300,
         }
     }
 }
@@ -124,8 +126,8 @@ impl Config {
         crate::capability::Verifier::new(
             &config.reply.issuer,
             &config.reply.audience,
-            config.reply.maximum_ttl_seconds,
-            &config.reply_keys,
+            config.reply.ttl,
+            &config.keys,
         )
         .map_err(anyhow::Error::msg)?;
         let parent = path.parent().unwrap_or_else(|| Path::new("."));
