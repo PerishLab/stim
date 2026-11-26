@@ -29,7 +29,7 @@ retiring = "6kpsY-KcUgq-9VB7Ey7F-ZVHdq6-vnuSQh7qaRRG0iw"
     )
     .unwrap();
     let config = Config::load(file.path()).unwrap();
-    assert_eq!(config.reply_keys.len(), 2);
+    assert_eq!(config.keys.len(), 2);
     assert!(config.store.path.ends_with("stim.sqlite"));
 }
 

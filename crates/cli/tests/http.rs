@@ -204,9 +204,9 @@ fn config(base: String, path: std::path::PathBuf) -> Config {
             address: "127.0.0.1:0".to_string(),
             issuer: "santi.example".to_string(),
             audience: "stim.reply".to_string(),
-            maximum_ttl_seconds: 300,
+            ttl: 300,
         },
-        reply_keys: [(
+        keys: [(
             "test-2026".to_string(),
             URL_SAFE_NO_PAD.encode(SigningKey::from_bytes(&[7; 32]).verifying_key().as_bytes()),
         )]

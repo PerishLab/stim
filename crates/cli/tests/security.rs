@@ -161,9 +161,9 @@ fn config(path: &std::path::Path) -> Config {
             address: "127.0.0.1:0".to_string(),
             issuer: "santi.example".to_string(),
             audience: "stim.reply".to_string(),
-            maximum_ttl_seconds: 300,
+            ttl: 300,
         },
-        reply_keys: [("active", &active), ("retiring", &retiring)]
+        keys: [("active", &active), ("retiring", &retiring)]
             .into_iter()
             .map(|(kid, key)| {
                 (

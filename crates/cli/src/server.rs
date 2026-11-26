@@ -85,8 +85,8 @@ pub fn back(config: Config, store: stim_core::Store) -> Result<Router> {
     let verifier = capability::Verifier::new(
         &config.reply.issuer,
         &config.reply.audience,
-        config.reply.maximum_ttl_seconds,
-        &config.reply_keys,
+        config.reply.ttl,
+        &config.keys,
     )
     .map_err(anyhow::Error::msg)?;
     Ok(Router::new()
